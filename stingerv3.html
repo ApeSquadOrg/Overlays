@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Stinger: Ape Squad</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@900&display=swap');
+        :root {
+            --b-blue:   #01a3eb;
+            --b-orange: #ff853b;
+            --b-pink:   #ff4e94;
+            --b-purple: #633fdc;
+            --b-dark:   #0a0510;
+        }
+        body { margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden; background: transparent; }
+        .stinger-container { position: absolute; width: 100%; height: 100%; }
+        
+        /* ── BACKGROUND SWIPES ────────────────────────────── */
+        .layer { position: absolute; top: -20vh; bottom: -20vh; transform: skewX(-20deg); box-shadow: -10px 0 30px rgba(0,0,0,0.6); }
+        .c-safety { left: -320vw; width: 300vw; background: var(--b-dark); z-index: 5; border-right: 8px solid var(--b-purple); }
+        .c-main {
+            left: -160vw; width: 160vw; z-index: 10;
+            background: linear-gradient(135deg, var(--b-blue) 0%, var(--b-purple) 60%, var(--b-dark) 100%);
+            clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 100%, 20% 50%, 0% 0%);
+            background-image: linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px);
+            background-size: 80px 80px; background-blend-mode: overlay;
+        }
+        .c-accent { left: -155vw; width: 155vw; z-index: 9; background: linear-gradient(to bottom, var(--b-orange), var(--b-pink)); clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 100%, 20% 50%, 0% 0%); }
+        .c-flash  { left: -150vw; width: 150vw; z-index: 8; background: linear-gradient(90deg, #ffffff 0%, var(--b-pink) 50%, transparent 100%); clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 100%, 20% 50%, 0% 0%); mix-blend-mode: overlay; opacity: 0.9; }
+        
+        /* ── VELOCITY LINES & SPARKS ──────────────────────── */
+        .speed-line { position: absolute; height: 6px; width: 80vw; left: -80vw; border-radius: 3px; z-index: 15; transform: skewX(-20deg); }
+        .sl-1 { top: 20%; background: linear-gradient(90deg, var(--b-blue), transparent); opacity: 0.8; }
+        .sl-2 { top: 80%; background: linear-gradient(90deg, var(--b-orange), transparent); opacity: 0.8; }
+
+        /* Z-index changed to 45 so they fly BEHIND the logos (which are 50) */
+        .spark { position: absolute; height: 4px; background: #fff; border-radius: 2px; z-index: 45; opacity: 0; box-shadow: 0 0 15px #fff, 0 0 30px var(--b-blue); transform: skewX(-20deg); }
+        .sp-1 { width: 15vw; top: 42%; }
+        .sp-2 { width: 8vw; top: 62%; }
+        .sp-3 { width: 25vw; top: 52%; box-shadow: 0 0 15px #fff, 0 0 30px var(--b-pink); }
+
+        /* ── LOGO BOX (Flexbox to stack both images) ──── */
+        .logo-box {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 50; opacity: 0;
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            gap: 2.5vmin; 
+        }
+
+        /* ── GLOW RING & SHOCKWAVE ────────────────────────── */
+        .logo-glow {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0);
+            width: 80vmin; height: 80vmin; border-radius: 50%;
+            background: radial-gradient(circle, rgba(1, 163, 235, 0.55) 0%, rgba(1, 163, 235, 0.18) 40%, transparent 70%);
+            z-index: 49; opacity: 0; pointer-events: none; filter: blur(8px);
+        }
+
+        .shockwave {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0);
+            width: 45vmin; height: 45vmin; border-radius: 50%;
+            border: 0px solid var(--b-blue); z-index: 48; opacity: 0; pointer-events: none;
+        }
+
+        /* ── LOGOS ────────────────────────────────────────── */
+        .logo-img { width: 36vmin; filter: drop-shadow(0 15px 30px rgba(0,0,0,0.7)); display: block; transform-origin: center center; }
+        .sub-logo { height: 8.5vmin; width: auto; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.7)); display: block; transform-origin: center center; }
+
+        /* ── SLIDE ANIMATION (MOMENTUM TILT/OVERSHOOT) ────── */
+        .play .logo-box { animation: slideLogo 2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+        @keyframes slideLogo {
+            /* Flies in skewed forward */
+            0%   { opacity: 0; transform: translate(-150vw, -50%) skewX(15deg) scale(0.9); }
+            /* Overshoots center slightly, tilting backwards like braking */
+            35%  { opacity: 1; transform: translate(-48%, -50%) skewX(-5deg) scale(1.02); }
+            /* Settles perfectly */
+            42%  { opacity: 1; transform: translate(-50%, -50%) skewX(0deg) scale(1); }
+            60%  { opacity: 1; transform: translate(-50%, -50%) skewX(0deg); }
+            /* Peels out skewed backwards */
+            100% { opacity: 0; transform: translate(150vw, -50%) skewX(-15deg); }
+        }
+
+        /* ── SNAP PULSE on BOTH logos (scale bounce) ──────── */
+        .logo-img.snapped, .sub-logo.snapped { animation: logoPulse 0.55s cubic-bezier(0.22, 0.61, 0.36, 1) forwards; }
+        @keyframes logoPulse {
+            0%   { transform: scale(1);    filter: drop-shadow(0 15px 30px rgba(0,0,0,0.7)); }
+            18%  { transform: scale(1.12); filter: drop-shadow(0 20px 45px rgba(1,163,235,0.6)); }
+            42%  { transform: scale(0.96); filter: drop-shadow(0 12px 25px rgba(1,163,235,0.3)); }
+            68%  { transform: scale(1.04); filter: drop-shadow(0 16px 35px rgba(1,163,235,0.2)); }
+            100% { transform: scale(1);    filter: drop-shadow(0 15px 30px rgba(0,0,0,0.7)); }
+        }
+
+        /* ── SHOCKWAVE & GLOW ANIMATIONS ──────────────────── */
+        .logo-glow.bloomed { animation: glowBloom 1.1s cubic-bezier(0.22, 0.61, 0.36, 1) forwards; }
+        @keyframes glowBloom {
+            0%   { opacity: 0;    transform: translate(-50%, -50%) scale(0.3); }
+            15%  { opacity: 1;    transform: translate(-50%, -50%) scale(1.05); }
+            35%  { opacity: 0.85; transform: translate(-50%, -50%) scale(0.95); }
+            55%  { opacity: 0.6;  transform: translate(-50%, -50%) scale(1.0); }
+            100% { opacity: 0;    transform: translate(-50%, -50%) scale(1.2); }
+        }
+
+        .shockwave.bloomed { animation: shockwaveAnim 0.6s cubic-bezier(0.1, 0.8, 0.3, 1) forwards; }
+        @keyframes shockwaveAnim {
+            0%   { transform: translate(-50%, -50%) scale(0.8); border: 25px solid var(--b-blue); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(2.2); border: 0px solid rgba(1, 163, 235, 0); opacity: 0; }
+        }
+
+        /* ── BACKGROUND SWIPE TIMINGS ─────────────────────── */
+        .play .c-safety { animation: swipe 2s cubic-bezier(0.7, 0, 0.3, 1) forwards; }
+        .play .c-main   { animation: swipe 2s cubic-bezier(0.7, 0, 0.3, 1) forwards; animation-delay: 0.03s; }
+        .play .c-accent { animation: swipe 2s cubic-bezier(0.7, 0, 0.3, 1) forwards; animation-delay: 0.06s; }
+        .play .c-flash  { animation: swipe 2s cubic-bezier(0.7, 0, 0.3, 1) forwards; animation-delay: 0.09s; }
+        @keyframes swipe {
+            0%   { transform: translateX(0) skewX(-20deg); }
+            45%  { transform: translateX(200vw) skewX(-20deg); }
+            55%  { transform: translateX(210vw) skewX(-20deg); }
+            100% { transform: translateX(500vw) skewX(-20deg); }
+        }
+
+        .play .sl-1 { animation: zipLine 2s linear forwards; }
+        .play .sl-2 { animation: zipLine 2s linear forwards; animation-delay: 0.1s; }
+        @keyframes zipLine { 0% { left: -80vw; opacity: 0; } 40% { opacity: 1; } 100% { left: 180vw; opacity: 0; } }
+
+        .play .sp-1 { animation: sparkFly 1.2s 0.3s cubic-bezier(0.4, 0, 1, 1) forwards; }
+        .play .sp-2 { animation: sparkFly 1.0s 0.5s cubic-bezier(0.4, 0, 1, 1) forwards; }
+        .play .sp-3 { animation: sparkFly 1.5s 0.2s cubic-bezier(0.4, 0, 1, 1) forwards; }
+        @keyframes sparkFly { 0% { left: -30vw; opacity: 1; } 100% { left: 130vw; opacity: 1; } }
+    </style>
+</head>
+<body id="app">
+    <div class="stinger-container">
+        <!-- Velocity Lines -->
+        <div class="speed-line sl-1"></div>
+        <div class="speed-line sl-2"></div>
+        <div class="spark sp-1"></div>
+        <div class="spark sp-2"></div>
+        <div class="spark sp-3"></div>
+
+        <!-- Diagonal Wipes -->
+        <div class="layer c-flash"></div>
+        <div class="layer c-accent"></div>
+        <div class="layer c-main"></div>
+        <div class="layer c-safety"></div>
+
+        <!-- FX Behind Logos -->
+        <div class="logo-glow" id="logoGlow"></div>
+        <div class="shockwave" id="shockwaveRing"></div>
+
+        <!-- Logos -->
+        <div class="logo-box" id="logoBox">
+            <img src="images/LOGO.png" class="logo-img" id="logoImg" onerror="this.style.display='none'">
+            <img src="images/classics.png" class="sub-logo" id="subLogoImg" onerror="this.style.display='none'">
+        </div>
+    </div>
+
+    <script>
+        let audioCtx;
+
+        function initAudio() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        function buildReverb(seconds, decay) {
+            const len = audioCtx.sampleRate * seconds;
+            const buf = audioCtx.createBuffer(2, len, audioCtx.sampleRate);
+            for (let c = 0; c < 2; c++) {
+                const d = buf.getChannelData(c);
+                for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, decay);
+            }
+            const conv = audioCtx.createConvolver();
+            conv.buffer = buf;
+            return conv;
+        }
+
+        function makeNoise(dur) {
+            const len  = Math.ceil(audioCtx.sampleRate * dur);
+            const buf  = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
+            const data = buf.getChannelData(0);
+            for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+            const src  = audioCtx.createBufferSource();
+            src.buffer = buf;
+            return src;
+        }
+
+        function triggerVisualSnap() {
+            const img   = document.getElementById('logoImg');
+            const sub   = document.getElementById('subLogoImg');
+            const glow  = document.getElementById('logoGlow');
+            const shock = document.getElementById('shockwaveRing');
+
+            // Force reflow
+            img.classList.remove('snapped');
+            if(sub) sub.classList.remove('snapped');
+            glow.classList.remove('bloomed');
+            shock.classList.remove('bloomed');
+            
+            void img.offsetWidth;
+            if(sub) void sub.offsetWidth;
+            void glow.offsetWidth;
+            void shock.offsetWidth;
+
+            img.classList.add('snapped');
+            if(sub) sub.classList.add('snapped');
+            glow.classList.add('bloomed');
+            shock.classList.add('bloomed');
+        }
+
+        function playStingerAudio() {
+            initAudio();
+            const now  = audioCtx.currentTime;
+            const peak = now + 0.80;
+            const gone = peak + 0.22;
+            const dest = audioCtx.destination;
+
+            // Schedule visual snap to fire exactly at peak (800ms)
+            setTimeout(triggerVisualSnap, 800);
+
+            const verb     = buildReverb(2.2, 1.8);
+            const verbGain = audioCtx.createGain();
+            verbGain.gain.value = 0.45;
+            verb.connect(verbGain);
+            verbGain.connect(dest);
+
+            const dry = audioCtx.createGain();
+            dry.gain.value = 0.6;
+            dry.connect(dest);
+
+            const bus = audioCtx.createGain();
+            bus.gain.value = 1.0;
+            bus.connect(dry);
+            bus.connect(verb);
+
+            const panner = audioCtx.createStereoPanner();
+            panner.pan.setValueAtTime(-0.8,  now);
+            panner.pan.linearRampToValueAtTime(0.0,  peak);
+            panner.pan.linearRampToValueAtTime(0.65, gone + 0.4);
+            panner.connect(bus);
+
+            const toneBus = audioCtx.createGain();
+            toneBus.gain.value = 1.0;
+            toneBus.connect(panner);
+
+            // ACT 1 — RISING CHORD RUSH
+            const chordTargets = [147, 175, 220, 262];
+            const chordStarts  = [740, 880, 1100, 1320];
+
+            chordTargets.forEach((targetF, i) => {
+                const osc  = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = i < 2 ? 'sine' : 'triangle';
+                osc.frequency.setValueAtTime(chordStarts[i], now);
+                osc.frequency.exponentialRampToValueAtTime(targetF, peak);
+
+                const entryDelay = i * 0.055;
+                gain.gain.setValueAtTime(0, now);
+                gain.gain.linearRampToValueAtTime(0, now + entryDelay);
+                gain.gain.linearRampToValueAtTime(0.038 - i * 0.004, now + entryDelay + 0.12);
+                gain.gain.linearRampToValueAtTime(0.028, peak - 0.03);
+                gain.gain.linearRampToValueAtTime(0, peak + 0.01);
+
+                osc.connect(gain); gain.connect(toneBus);
+                osc.start(now); osc.stop(peak + 0.03);
+            });
+
+            // Fat noise rush
+            const rush     = makeNoise(peak - now + 0.05);
+            const rushLP   = audioCtx.createBiquadFilter(); rushLP.type = 'lowpass';
+            rushLP.frequency.setValueAtTime(200,  now); rushLP.frequency.exponentialRampToValueAtTime(3500, peak - 0.05); rushLP.frequency.linearRampToValueAtTime(0, peak);
+            const rushHP   = audioCtx.createBiquadFilter(); rushHP.type = 'highpass'; rushHP.frequency.value = 80;
+            const rushGain = audioCtx.createGain(); rushGain.gain.setValueAtTime(0, now); rushGain.gain.linearRampToValueAtTime(0.0, now + 0.1); rushGain.gain.linearRampToValueAtTime(0.12, peak - 0.08); rushGain.gain.linearRampToValueAtTime(0, peak + 0.01);
+            rush.connect(rushHP); rushHP.connect(rushLP); rushLP.connect(rushGain); rushGain.connect(panner);
+            rush.start(now); rush.stop(peak + 0.03);
+
+            // ACT 2 — CHORD SNAP
+            const snapFreqs = [294, 349, 440, 523];
+            const snapOscs  = [];
+
+            snapFreqs.forEach((freq, i) => {
+                const osc  = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+                osc.type = 'sine'; osc.frequency.setValueAtTime(freq, peak);
+                gain.gain.setValueAtTime(0, peak); gain.gain.linearRampToValueAtTime(0.055 - i * 0.008, peak + 0.015); gain.gain.setValueAtTime(0.055 - i * 0.008, gone);
+                osc.connect(gain); gain.connect(toneBus);
+                osc.start(peak); snapOscs.push({ osc, gain });
+            });
+
+            const snap     = makeNoise(0.08);
+            const snapBP   = audioCtx.createBiquadFilter(); snapBP.type = 'bandpass'; snapBP.frequency.value = 1400; snapBP.Q.value = 0.7;
+            const snapGain = audioCtx.createGain(); snapGain.gain.setValueAtTime(0, peak); snapGain.gain.linearRampToValueAtTime(0.09, peak + 0.008); snapGain.gain.exponentialRampToValueAtTime(0.001, peak + 0.07);
+            snap.connect(snapBP); snapBP.connect(snapGain); snapGain.connect(bus);
+            snap.start(peak); snap.stop(peak + 0.09);
+
+            // ACT 3 — DEPARTURE
+            snapOscs.forEach(({ osc, gain }, i) => {
+                const isUpper = i >= 2;
+                osc.frequency.setValueAtTime(snapFreqs[i], gone);
+                if (!isUpper) {
+                    osc.frequency.exponentialRampToValueAtTime(14, gone + 0.42);
+                    gain.gain.setValueAtTime(0.055 - i * 0.008, gone); gain.gain.exponentialRampToValueAtTime(0.001, gone + 0.44);
+                    osc.stop(gone + 0.48);
+                } else {
+                    osc.frequency.exponentialRampToValueAtTime(28, gone + 0.55);
+                    gain.gain.setValueAtTime(0.055 - i * 0.008, gone); gain.gain.linearRampToValueAtTime(0.018, gone + 0.3); gain.gain.exponentialRampToValueAtTime(0.001, gone + 0.75);
+                    osc.stop(gone + 0.8);
+                }
+            });
+
+            const departLP = audioCtx.createBiquadFilter(); departLP.type  = 'lowpass';
+            departLP.frequency.setValueAtTime(8000, peak); departLP.frequency.setValueAtTime(8000, gone); departLP.frequency.exponentialRampToValueAtTime(60, gone + 0.45);
+            toneBus.disconnect(); toneBus.connect(departLP); departLP.connect(panner);
+        }
+
+        window.onload = () => {
+            const app = document.getElementById('app');
+            setTimeout(() => {
+                app.classList.add('play');
+                playStingerAudio();
+            }, 50);
+        };
+    </script>
+</body>
+</html>
