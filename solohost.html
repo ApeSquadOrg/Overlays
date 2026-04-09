@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ape Squad - Solo Host Overlay</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Orbitron:wght@400;700;900&family=Roboto:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --ape-cyan: #01a3eb; --ape-orange: #ff853b; --ape-pink: #f834ac; --ape-purple: #904ce2;
+            --solid-bg: #0c0c0c;
+            --host-gradient: linear-gradient(135deg, var(--ape-purple), var(--ape-cyan)); 
+            --ape-spectrum: linear-gradient(90deg, var(--ape-cyan), var(--ape-orange), var(--ape-pink), var(--ape-purple));
+            --font-main: 'Orbitron', sans-serif; --font-header: 'Bebas Neue', sans-serif; --font-sub: 'Roboto', sans-serif;
+
+            /* --- MICRO-ADJUSTMENTS (Fixed Overlap Issue) --- */
+            /* Scaled down exactly 10% to fit cleanly with the ad space */
+            --cam-width: 1152px;         /* Perfect 16:9 Width */
+            --cam-height: 648px;         /* Perfect 16:9 Height */
+            --cam-stage-y: 200px;        /* Moves cam up or down */
+            
+            --ad-width: 640px;           /* Ad Carousel Size */
+            --ad-height: 360px;          
+            --ad-y-pos: 965px;           /* Perfectly spaced below the host nameplate */
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: var(--font-main); background: rgba(0,0,0,0); color: #fff; overflow: hidden; width: 2560px; height: 1440px; }
+        .text-bounds { flex: 1; overflow: hidden; white-space: nowrap; min-width: 0; display: flex; align-items: center; }
+
+        .top-logo-container { position: absolute; top: 50px; left: 50%; transform: translateX(-50%); height: 120px; z-index: 100; }
+        .top-logo-container img { height: 100%; width: auto; object-fit: contain; filter: drop-shadow(0 10px 25px rgba(0,0,0,0.8)); }
+
+        /* SOLO STAGE */
+        .caster-stage { position: absolute; top: var(--cam-stage-y); left: 50%; transform: translateX(-50%); z-index: 40; filter: drop-shadow(0 15px 30px rgba(0,0,0,0.8)); }
+        
+        .cam-frame { width: var(--cam-width); height: var(--cam-height); background: transparent; box-shadow: inset 0 0 20px rgba(0,0,0,0.8); position: relative; border: 4px solid var(--ape-purple); border-image: var(--host-gradient) 1; box-shadow: 0 0 30px rgba(144, 76, 226, 0.3), inset 0 0 20px rgba(0,0,0,0.8); }
+
+        .caster-card { display: flex; align-items: center; width: 100%; height: 85px; background: var(--solid-bg); position: relative; z-index: 2; border-bottom: 4px solid var(--ape-cyan); }
+        .caster-color-block { width: 85px; height: 100%; flex-shrink: 0; background: var(--host-gradient); }
+        
+        .caster-info { flex-grow: 1; height: 100%; display: flex; align-items: center; gap: 20px; padding: 0 30px; overflow: hidden; justify-content: flex-start; }
+        .caster-label { font-family: var(--font-sub); font-size: 1.4rem; color: #aaa; text-transform: uppercase; letter-spacing: 4px; font-weight: 900; flex-shrink: 0; transform: translateY(2px); }
+        .caster-name { font-family: var(--font-header); font-size: 4rem; letter-spacing: 2px; text-transform: uppercase; color: #fff; text-shadow: 2px 2px 5px rgba(0,0,0,0.8); transform: translateY(3px); }
+
+        /* AD CAROUSEL */
+        .ad-carousel-wrapper { position: absolute; top: var(--ad-y-pos); left: 50%; transform: translateX(-50%); z-index: 30; }
+        .ad-container { width: var(--ad-width); height: var(--ad-height); background: #000; border: 2px solid rgba(255, 255, 255, 0.15); display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; border-radius: 4px; box-shadow: 0 15px 40px rgba(0,0,0,0.95), 0 0 20px rgba(1, 163, 235, 0.15); }
+        .ad-image { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 1s ease-in-out; z-index: 1; }
+        .ad-image.active { opacity: 1; z-index: 2; }
+
+        /* FULL WIDTH BOTTOM BANNER */
+        .hud-bottom { position: absolute; bottom: 0; left: 0; height: 80px; width: 100%; z-index: 50; filter: drop-shadow(0 -5px 15px rgba(0,0,0,0.7)); }
+        .hud-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--solid-bg); z-index: 0; }
+        .hud-bg::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: var(--ape-spectrum); box-shadow: 0 0 10px var(--ape-cyan); }
+        .center-logo-absolute { position: absolute; left: 50%; bottom: -10px; transform: translateX(-50%); width: 300px; height: 130px; z-index: 20; display: flex; justify-content: center; align-items: flex-end; }
+        .center-logo-absolute img { height: 100%; width: auto; object-fit: contain; filter: drop-shadow(0 0 20px rgba(255,255,255,0.15)); }
+
+        .module-left { position: absolute; left: 60px; bottom: 0; height: 100%; display: flex; align-items: center; z-index: 15; width: 900px; overflow: hidden; white-space: nowrap; gap: 15px; }
+        .module-left .module-label { color: var(--ape-cyan); }
+        .module-right { position: absolute; right: 60px; bottom: 0; height: 100%; display: flex; align-items: center; z-index: 15; width: 500px; justify-content: flex-end; overflow: hidden; white-space: nowrap; gap: 15px; }
+        .module-right .module-label { color: var(--ape-pink); }
+        .module-label { font-family: var(--font-sub); font-size: 1.1rem; text-transform: uppercase; letter-spacing: 3px; font-weight: 900; flex-shrink: 0; }
+        .module-value { font-family: var(--font-header); font-size: 2.2rem; color: #fff; text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 2px 5px rgba(0,0,0,0.8); transform: translateY(2px); transition: opacity 0.6s ease-in-out; opacity: 1;}
+        .fade-out { opacity: 0 !important; }
+    </style>
+</head>
+<body>
+
+    <div class="top-logo-container"><img src="images/classics.png" onerror="this.style.display='none'"></div>
+
+    <div class="caster-stage">
+        <div class="cam-frame"></div> 
+        <div class="caster-card">
+            <div class="caster-color-block"></div>
+            <div class="caster-info">
+                <span class="caster-label">HOST //</span>
+                <div class="text-bounds"><span class="caster-name" id="host-name">LOADING</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="ad-carousel-wrapper">
+        <div class="ad-container">
+            <img src="images/ostout.png" class="ad-image active" onerror="this.style.display='none'">
+            <img src="images/shop.png" class="ad-image" onerror="this.style.display='none'">
+            <img src="images/bundle.png" class="ad-image" onerror="this.style.display='none'">
+        </div>
+    </div>
+
+    <div class="hud-bottom">
+        <div class="hud-bg"></div>
+        <div class="module-left">
+            <span class="module-label">UPDATE //</span>
+            <div class="text-bounds"><span class="module-value" id="hud-cycling-info">APESQUAD.ORG</span></div>
+        </div>
+        <div class="center-logo-absolute"><img src="images/LOGO.png" onerror="this.style.display='none'"></div>
+        <div class="module-right">
+            <span class="module-label">SOCIALS //</span>
+            <div class="text-bounds" style="justify-content: flex-end;"><span class="module-value">@APESQUADORG</span></div>
+        </div>
+    </div>
+
+    <script>
+        const SPREADSHEET_ID = '10ZmWteGljWdAu4TIMMkKkt23jFSuuKlTtqc-bxpVvN4';
+        const SHEET_GID = '228881380';
+        let bannerTexts = []; let currentBannerIndex = 0; let isBannerCycling = false;
+
+        let currentAdIndex = 0; const ads = document.querySelectorAll('.ad-image');
+        setInterval(() => { if(ads.length <= 1) return; ads[currentAdIndex].classList.remove('active'); currentAdIndex = (currentAdIndex + 1) % ads.length; ads[currentAdIndex].classList.add('active'); }, 15000);
+
+        function fitText(el, container, baseSize) {
+            let size = baseSize; el.style.fontSize = `${size}rem`;
+            while (el.scrollWidth > container.clientWidth && size > 0.8) { size -= 0.1; el.style.fontSize = `${size}rem`; }
+        }
+
+        function getVal(rows, r, c) { return (rows && rows[r] && rows[r].c && rows[r].c[c]) ? rows[r].c[c].v ?? '' : ''; }
+
+        setInterval(() => {
+            if (isBannerCycling || bannerTexts.length <= 1) return; isBannerCycling = true;
+            const textEl = document.getElementById('hud-cycling-info'); textEl.classList.add('fade-out');
+            setTimeout(() => { currentBannerIndex = (currentBannerIndex + 1) % bannerTexts.length; textEl.textContent = bannerTexts[currentBannerIndex]; fitText(textEl, textEl.parentElement, 2.4); textEl.classList.remove('fade-out'); }, 600);
+        }, 10000);
+
+        async function updateData() {
+            try {
+                const res = await fetch(`https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&gid=${SHEET_GID}&nocache=${new Date().getTime()}`);
+                const text = await res.text(); const rows = JSON.parse(text.substring(47, text.length - 2)).table.rows;
+                
+                const layout = getVal(rows, 1, 0).toString().toUpperCase().trim();
+                const rIndex = (layout.includes('POINTBREAK') || layout.includes('CASHOUT')) ? 1 : 0;
+                
+                // Fetch HOST from Column J (Index 9)
+                document.getElementById('host-name').textContent = getVal(rows, rIndex, 9) || "HOST";
+                
+                const newBanners = [];
+                for(let i=0; i<rows.length; i++){ const bt = getVal(rows, i, 5); if(bt && bt.trim()!=='' && bt.trim().toLowerCase()!=='banner text') newBanners.push(bt.trim()); }
+                if(bannerTexts.length===0 && newBanners.length>0){ bannerTexts=newBanners; document.getElementById('hud-cycling-info').textContent = bannerTexts[0]; isBannerCycling=false; } else { bannerTexts=newBanners; }
+
+                fitText(document.getElementById('host-name'), document.getElementById('host-name').parentElement, 4.0);
+                fitText(document.getElementById('hud-cycling-info'), document.getElementById('hud-cycling-info').parentElement, 2.4);
+            } catch (e) { console.error(e); }
+        }
+        updateData(); setInterval(updateData, 5000);
+    </script>
+</body>
+</html>

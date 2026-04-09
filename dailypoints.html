@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ape Squad - Daily Point Leaderboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Orbitron:wght@400;700;900&family=Roboto:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* --- THEME COLORS --- */
+            --ape-cyan: #01a3eb;
+            --ape-orange: #ff853b;
+            --ape-pink: #f834ac;
+            --ape-purple: #904ce2;
+            --solid-bg: #0c0c0c; 
+            
+            --ape-spectrum: linear-gradient(90deg, var(--ape-cyan), var(--ape-orange), var(--ape-pink), var(--ape-purple));
+            --rank-gradient: linear-gradient(135deg, #1a1a1a, #2a2a2a);
+            
+            --font-main: 'Orbitron', sans-serif; 
+            --font-header: 'Bebas Neue', sans-serif;
+            --font-sub: 'Roboto', sans-serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body { 
+            font-family: var(--font-main); 
+            background: rgba(0,0,0,0); /* Transparent for OBS */
+            color: #fff; 
+            overflow: hidden; 
+            width: 2560px; height: 1440px; 
+        }
+
+        /* --- BACKGROUND FX --- */
+        .bg-pattern {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: var(--solid-bg);
+            background-image: radial-gradient(rgba(255, 255, 255, 0.05) 2px, transparent 2px);
+            background-size: 50px 50px; z-index: -4;
+            animation: bgDrift 40s linear infinite;
+        }
+        @keyframes bgDrift { 100% { background-position: -500px 500px; } }
+        
+        .scanlines {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.3));
+            background-size: 100% 4px; z-index: -2; pointer-events: none; opacity: 0.6;
+        }
+
+        /* --- HEADER --- */
+        .header-container {
+            position: absolute; top: 40px; left: 50%; transform: translateX(-50%);
+            display: flex; flex-direction: column; align-items: center; z-index: 10;
+            width: 100%;
+        }
+        .header-logo { height: 90px; width: auto; object-fit: contain; margin-bottom: -10px; filter: drop-shadow(0 0 15px rgba(255,255,255,0.15)); }
+        .header-main { font-family: var(--font-header); font-size: 6rem; line-height: 1; letter-spacing: 5px; text-shadow: 0 0 15px rgba(255,255,255,0.2); }
+        .header-main .highlight { background: var(--ape-spectrum); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 10px rgba(1, 163, 235, 0.5)); }
+
+        /* --- LEADERBOARD GRID --- */
+        .leaderboard-wrapper {
+            position: absolute; top: 250px; left: 50%; transform: translateX(-50%);
+            width: 2200px; height: 650px; 
+            display: flex; gap: 40px;
+            opacity: 1; transition: opacity 0.8s ease-in-out;
+        }
+        .leaderboard-wrapper.fade { opacity: 0; }
+
+        .lb-column {
+            flex: 1; display: flex; flex-direction: column; gap: 12px;
+        }
+
+        /* --- LEADERBOARD ROW --- */
+        .lb-row {
+            display: flex; align-items: center;
+            height: 65px; 
+            background: rgba(20, 20, 20, 0.9);
+            border-left: 4px solid #444; border-radius: 0 8px 8px 0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            transition: all 0.3s ease;
+        }
+        
+        .lb-row.first-place { border-left: 4px solid var(--ape-cyan); background: linear-gradient(90deg, rgba(1, 163, 235, 0.15), rgba(20,20,20,0.9) 30%); }
+        .lb-row.top-tier { border-left: 4px solid var(--ape-orange); }
+        
+        .rank-box {
+            width: 75px; height: 100%; display: flex; align-items: center; justify-content: center;
+            background: var(--rank-gradient);
+            font-family: var(--font-header); font-size: 2.8rem; color: #fff;
+            border-right: 2px solid rgba(255,255,255,0.05);
+            text-shadow: 2px 2px 5px rgba(0,0,0,0.8); transform: translateY(2px);
+        }
+        .lb-row.first-place .rank-box { color: var(--ape-cyan); text-shadow: 0 0 15px rgba(1, 163, 235, 0.5); }
+
+        .team-box {
+            flex: 1; height: 100%; display: flex; align-items: center; padding: 0 20px;
+            overflow: hidden; white-space: nowrap;
+        }
+        .team-name {
+            font-family: var(--font-header); font-size: 3rem; letter-spacing: 2px; text-transform: uppercase;
+            text-shadow: 2px 2px 5px rgba(0,0,0,0.8); transform: translateY(2px);
+        }
+
+        .points-box {
+            padding: 0 25px; height: 100%; display: flex; flex-direction: column; align-items: flex-end; justify-content: center;
+            background: rgba(0,0,0,0.3); border-radius: 0 8px 8px 0;
+        }
+        .points-val { font-family: var(--font-header); font-size: 3.2rem; color: var(--ape-pink); line-height: 0.9; text-shadow: 0 0 15px rgba(248, 52, 172, 0.3); transform: translateY(2px);}
+        .points-label { font-family: var(--font-sub); font-size: 0.85rem; color: #888; letter-spacing: 3px; font-weight: 900; }
+
+        /* --- AD CAROUSEL --- */
+        .ad-carousel-wrapper { position: absolute; top: 920px; left: 50%; transform: translateX(-50%); z-index: 30; }
+        .ad-container { 
+            width: 512px; height: 288px; 
+            background: #000; border: 2px solid rgba(255, 255, 255, 0.15); display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; border-radius: 4px; box-shadow: 0 15px 40px rgba(0,0,0,0.95), 0 0 20px rgba(1, 163, 235, 0.15); 
+        }
+        .ad-image { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 1s ease-in-out; z-index: 1; }
+        .ad-image.active { opacity: 1; z-index: 2; }
+
+        /* --- FULL WIDTH BOTTOM BANNER --- */
+        .hud-bottom { position: absolute; bottom: 0; left: 0; height: 80px; width: 100%; z-index: 50; filter: drop-shadow(0 -5px 15px rgba(0,0,0,0.7)); }
+        .hud-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--solid-bg); z-index: 0; }
+        .hud-bg::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: var(--ape-spectrum); box-shadow: 0 0 10px var(--ape-cyan); }
+
+        .center-logo-absolute { position: absolute; left: 50%; bottom: -10px; transform: translateX(-50%); width: 300px; height: 130px; z-index: 20; display: flex; justify-content: center; align-items: flex-end; }
+        .center-logo-absolute img { height: 100%; width: auto; object-fit: contain; filter: drop-shadow(0 0 20px rgba(255,255,255,0.15)); }
+
+        .module-left { position: absolute; left: 60px; bottom: 0; height: 100%; display: flex; align-items: center; z-index: 15; width: 900px; overflow: hidden; white-space: nowrap; gap: 15px; }
+        .module-left .module-label { color: var(--ape-cyan); }
+        .module-right { position: absolute; right: 60px; bottom: 0; height: 100%; display: flex; align-items: center; z-index: 15; width: 500px; justify-content: flex-end; overflow: hidden; white-space: nowrap; gap: 15px; }
+        .module-right .module-label { color: var(--ape-pink); }
+        .module-label { font-family: var(--font-sub); font-size: 1.1rem; text-transform: uppercase; letter-spacing: 3px; font-weight: 900; flex-shrink: 0; }
+        .module-value { font-family: var(--font-header); font-size: 2.2rem; color: #fff; text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 2px 5px rgba(0,0,0,0.8); transform: translateY(2px);}
+        
+        .text-bounds { flex: 1; overflow: hidden; white-space: nowrap; min-width: 0; display: flex; align-items: center; }
+
+    </style>
+</head>
+<body>
+
+    <div class="bg-pattern"></div>
+    <div class="scanlines"></div>
+
+    <div class="header-container">
+        <img src="images/classics.png" alt="Classics" class="header-logo" onerror="this.style.display='none'">
+        <!-- The text below is automatically generated by the column you select -->
+        <div class="header-main"><span class="highlight" id="day-title">DAILY</span> LEADERBOARD</div>
+    </div>
+
+    <!-- LEADERBOARD GRID -->
+    <div class="leaderboard-wrapper" id="lb-wrapper">
+        <div class="lb-column" id="col-1"></div>
+        <div class="lb-column" id="col-2"></div>
+    </div>
+
+    <!-- AD CAROUSEL -->
+    <div class="ad-carousel-wrapper">
+        <div class="ad-container">
+            <img src="images/ostout.png" class="ad-image active" onerror="this.style.display='none'">
+            <img src="images/shop.png" class="ad-image" onerror="this.style.display='none'">
+            <img src="images/bundle.png" class="ad-image" onerror="this.style.display='none'">
+        </div>
+    </div>
+
+    <!-- BOTTOM BANNER -->
+    <div class="hud-bottom">
+        <div class="hud-bg"></div>
+        <div class="module-left">
+            <span class="module-label">UPDATE //</span>
+            <div class="text-bounds"><span class="module-value" id="hud-cycling-info">APESQUAD.ORG</span></div>
+        </div>
+        <div class="center-logo-absolute"><img src="images/LOGO.png" onerror="this.style.display='none'"></div>
+        <div class="module-right">
+            <span class="module-label">SOCIALS //</span>
+            <div class="text-bounds" style="justify-content: flex-end;"><span class="module-value">@APESQUADORG</span></div>
+        </div>
+    </div>
+
+    <script>
+        // =======================================================
+        // CONFIGURATION
+        // =======================================================
+        const SPREADSHEET_ID = '10ZmWteGljWdAu4TIMMkKkt23jFSuuKlTtqc-bxpVvN4';
+        const SHEET_GID = '1919570457'; 
+
+        let allTeams = [];
+        let currentPage = 0;
+        const TEAMS_PER_PAGE = 16; 
+        const PAGE_SPEED = 12000;  
+
+        // --- AD CAROUSEL ---
+        let currentAdIndex = 0; const ads = document.querySelectorAll('.ad-image');
+        setInterval(() => { if(ads.length <= 1) return; ads[currentAdIndex].classList.remove('active'); currentAdIndex = (currentAdIndex + 1) % ads.length; ads[currentAdIndex].classList.add('active'); }, 15000);
+
+        // --- SAFE FETCH ---
+        function getVal(rows, r, c, fallback = '') {
+            try {
+                if (rows && rows[r] && rows[r].c && rows[r].c[c]) {
+                    let val = rows[r].c[c].v;
+                    return val !== null && val !== undefined ? val : fallback;
+                }
+            } catch(e) {}
+            return fallback;
+        }
+
+        // --- TEXT RESIZER ---
+        function resizeText() {
+            document.querySelectorAll('.team-name').forEach(el => {
+                let size = 3.0; el.style.fontSize = `${size}rem`;
+                while (el.scrollWidth > el.parentElement.clientWidth && size > 1.0) {
+                    size -= 0.1; el.style.fontSize = `${size}rem`;
+                }
+            });
+        }
+
+        // --- BUILD ROW HTML ---
+        function buildRow(team) {
+            const rankNum = team.rank;
+            let tierClass = '';
+            if (rankNum === 1) tierClass = 'first-place';
+            else if (rankNum <= 4) tierClass = 'top-tier';
+
+            let displayPts = Math.floor(team.points);
+
+            return `
+                <div class="lb-row ${tierClass}">
+                    <div class="rank-box">${team.rank}</div>
+                    <div class="team-box"><span class="team-name">${team.name}</span></div>
+                    <div class="points-box">
+                        <span class="points-val">${displayPts}</span>
+                        <span class="points-label">PTS</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- RENDER PAGE ---
+        function renderPage() {
+            if (allTeams.length === 0) return;
+
+            const wrapper = document.getElementById('lb-wrapper');
+            const col1 = document.getElementById('col-1');
+            const col2 = document.getElementById('col-2');
+
+            wrapper.classList.add('fade');
+
+            setTimeout(() => {
+                col1.innerHTML = '';
+                col2.innerHTML = '';
+
+                const startIndex = currentPage * TEAMS_PER_PAGE;
+                const pageTeams = allTeams.slice(startIndex, startIndex + TEAMS_PER_PAGE);
+
+                pageTeams.forEach((team, index) => {
+                    // Splits the 16 teams into 8 per column
+                    if (index < 8) col1.innerHTML += buildRow(team);
+                    else col2.innerHTML += buildRow(team);
+                });
+
+                resizeText();
+                wrapper.classList.remove('fade');
+
+                currentPage++;
+                if (currentPage * TEAMS_PER_PAGE >= allTeams.length) {
+                    currentPage = 0; 
+                }
+            }, 800); 
+        }
+
+        // --- FETCH & SORT DATA ---
+        async function fetchLeaderboard() {
+            try {
+                const res = await fetch(`https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&gid=${SHEET_GID}&nocache=${new Date().getTime()}`);
+                const text = await res.text(); 
+                const json = JSON.parse(text.substring(47, text.length - 2));
+                const rows = json.table.rows;
+                const cols = json.table.cols; 
+
+                // 1. FIND THE TARGET COLUMN NAME (From cell A50)
+                // Row 49 is "Team 48", Row 50 is the Target Column text.
+                // In Google Sheets JSON (zero-based): Row 50 is index 48.
+                let targetColString = getVal(rows, 48, 0, "").toString().trim();
+                
+                // Fallbacks just in case the sheet shifts by a row
+                if (!targetColString) targetColString = getVal(rows, 49, 0, "").toString().trim(); 
+                if (!targetColString || targetColString === 'Team 48') targetColString = "April 9 Pts"; 
+
+                // 2. SEARCH HEADERS TO FIND MATCHING COLUMN
+                let DAY_COLUMN_INDEX = 1; // Default to Column B
+                if (cols) {
+                    for (let c = 0; c < cols.length; c++) {
+                        if (cols[c] && cols[c].label && cols[c].label.trim().toLowerCase() === targetColString.toLowerCase()) {
+                            DAY_COLUMN_INDEX = c;
+                            break;
+                        }
+                    }
+                }
+
+                // 3. SET DYNAMIC TITLE
+                let headerTitle = targetColString.replace(/pts/i, '').trim(); 
+                document.getElementById('day-title').textContent = headerTitle.toUpperCase();
+
+                const parsedTeams = [];
+                
+                // 4. READ EXACTLY 48 TEAMS (Index 0 through 47. 0 = 7VEN, 47 = Team 48)
+                const maxTeams = Math.min(rows.length, 48); 
+                for(let i = 0; i < maxTeams; i++) {
+                    const rawName = getVal(rows, i, 0, ''); 
+                    const rawPts = getVal(rows, i, DAY_COLUMN_INDEX, 0); 
+
+                    const name = String(rawName).trim(); 
+
+                    if (name !== '') {
+                        let pts = parseFloat(rawPts);
+                        if (isNaN(pts)) pts = 0; 
+                        
+                        parsedTeams.push({ name: name, points: pts });
+                    }
+                }
+
+                // 5. SORT AND RANK
+                parsedTeams.sort((a, b) => b.points - a.points);
+                parsedTeams.forEach((team, index) => {
+                    team.rank = index + 1;
+                });
+
+                allTeams = parsedTeams;
+
+                // 6. RENDER
+                if(document.getElementById('col-1').innerHTML === '') {
+                    renderPage();
+                    setInterval(renderPage, PAGE_SPEED);
+                }
+
+            } catch (e) { console.error("Leaderboard Fetch Error:", e); }
+        }
+
+        fetchLeaderboard();
+        setInterval(fetchLeaderboard, 30000); 
+    </script>
+</body>
+</html>

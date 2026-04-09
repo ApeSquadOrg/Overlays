@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ape Squad - Offline JSON Builder PRO</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0c0c0c; color: #fff;
+            padding: 40px; max-width: 900px; margin: 0 auto;
+        }
+        h1 { color: #f834ac; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 2px; }
+        p { color: #aaa; margin-bottom: 20px; line-height: 1.5; }
+        
+        textarea {
+            width: 100%; height: 300px; background: #1a1a1a; color: #01a3eb;
+            border: 2px solid #333; padding: 15px; font-family: monospace;
+            border-radius: 8px; font-size: 13px; margin-bottom: 20px;
+            white-space: pre; overflow-wrap: normal; overflow-x: scroll;
+        }
+        
+        .btn-group { display: flex; gap: 15px; }
+        
+        button {
+            background: #ff853b; color: #fff; border: none; padding: 15px 30px;
+            font-size: 1.2rem; font-weight: bold; border-radius: 8px; cursor: pointer;
+            transition: background 0.2s; text-transform: uppercase;
+        }
+        button:hover { background: #e06377; }
+        
+        #download-btn { background: #01a3eb; display: none; }
+        #download-btn:hover { background: #0182bc; }
+        #clear-btn { background: #333; }
+        #clear-btn:hover { background: #555; }
+
+        .log-box {
+            margin-top: 30px; background: #111; border: 1px solid #333;
+            border-radius: 8px; padding: 15px; height: 250px; overflow-y: auto;
+            font-family: monospace; color: #0f0;
+        }
+        .log-error { color: #ff5e62; }
+        .log-warn { color: #ff853b; }
+        .log-highlight { color: #01a3eb; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h1>Offline JSON Builder PRO</h1>
+    <p>
+        1. Go to your Liquipedia API link (e.g., <i>liquipedia.net/thefinals/api.php?action=parse&page=Brendy&format=json</i>)<br>
+        2. Copy the entire wall of text.<br>
+        3. Paste it below. You can paste multiple players' data into this box one after another!<br>
+        4. Click <b>Process Data</b> to extract the highlights, nationality, roles, and earnings.
+    </p>
+
+    <textarea id="raw-data" placeholder='{"parse":{"title":"Brendy","pageid":123,...}}&#10;{"parse":{"title":"EkaZo","pageid":456,...}}'></textarea>
+    
+    <div class="btn-group">
+        <button id="process-btn" onclick="processData()">Process Data</button>
+        <button id="download-btn" onclick="downloadJSON()">Download players.json</button>
+        <button id="clear-btn" onclick="clearAll()">Clear</button>
+    </div>
+
+    <div class="log-box" id="log-box">
+        > Ready to process...<br>
+    </div>
+
+    <script>
+        let finalDatabase =[];
+
+        function log(msg, type="normal") {
+            const logBox = document.getElementById('log-box');
+            let color = "#0f0"; 
+            if (type === "error") color = "#ff5e62"; 
+            if (type === "warn") color = "#ff853b";  
+            if (type === "highlight") color = "#01a3eb"; 
+            
+            logBox.innerHTML += `<span style="color:${color};">> ${msg}</span><br>`;
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        function clearAll() {
+            document.getElementById('raw-data').value = '';
+            document.getElementById('log-box').innerHTML = '> Ready to process...<br>';
+            document.getElementById('download-btn').style.display = 'none';
+            finalDatabase =[];
+        }
+
+        function processData() {
+            const rawText = document.getElementById('raw-data').value.trim();
+            if (rawText === '') {
+                log("Text box is empty!", "error");
+                return;
+            }
+
+            log("Analyzing pasted data...", "highlight");
+
+            const blocks = rawText.split('{"parse":');
+            let successCount = 0;
+
+            for (let i = 1; i < blocks.length; i++) {
+                try {
+                    let jsonString = '{"parse":' + blocks[i];
+                    jsonString = jsonString.substring(0, jsonString.lastIndexOf('}') + 1);
+
+                    const data = JSON.parse(jsonString);
+                    const playerName = data.parse.title;
+                    const htmlString = data.parse.text['*'];
+
+                    if (htmlString.includes('class="redirectText"')) {
+                        const redirectMatch = htmlString.match(/<ul class="redirectText"><li><a href="[^"]+" title="([^"]+)">/);
+                        const realName = redirectMatch ? redirectMatch[1] : "Unknown";
+                        log(`[!] ${playerName} is a Redirect Page. You need to query the API for: ${realName}`, "warn");
+                        continue;
+                    }
+
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(htmlString, "text/html");
+
+                    // --- NEW: EXTRA INFOBOX DATA EXTRACTION ---
+                    let nationality = "Unknown";
+                    let role = "Unknown";
+                    let earnings = null;
+                    let realName = "Unknown";
+
+                    const infoCells = doc.querySelectorAll('.infobox-description');
+                    infoCells.forEach(cell => {
+                        const label = cell.textContent.trim().toLowerCase();
+                        const valCell = cell.nextElementSibling;
+                        if (valCell) {
+                            if (label.includes('nationality')) {
+                                // Strips the text cleanly (e.g. "United States")
+                                nationality = valCell.textContent.trim();
+                            } else if (label.includes('role')) {
+                                role = valCell.textContent.trim();
+                            } else if (label.includes('winnings')) {
+                                earnings = valCell.textContent.trim();
+                            } else if (label.includes('name')) {
+                                realName = valCell.textContent.trim();
+                            }
+                        }
+                    });
+
+                    // --- HIGHLIGHTS EXTRACTION ---
+                    const rows = doc.querySelectorAll('.table2__row--body');
+                    let highlights =[];
+
+                    if (rows.length === 0) {
+                        log(`[!] Parsed ${playerName}, but no achievements were found.`, "warn");
+                    } else {
+                        rows.forEach(row => {
+                            const placementEl = row.querySelector('.placement-text') || row.cells[1];
+                            const placement = placementEl ? placementEl.textContent.trim() : "N/A";
+                            
+                            const tier = row.cells[2] ? row.cells[2].textContent.trim() : "Unknown";
+                            const tournament = row.cells[4] ? row.cells[4].textContent.trim() : "Unknown Tournament";
+                            
+                            let prizeStr = row.cells[row.cells.length - 1] ? row.cells[row.cells.length - 1].textContent.trim() : "-";
+                            let prize = (prizeStr === '-' || prizeStr === '') ? null : prizeStr;
+
+                            highlights.push({ placement, tier, tournament, prize });
+                        });
+                    }
+
+                    // --- ADD TO DATABASE ---
+                    finalDatabase.push({
+                        player: playerName,
+                        real_name: realName,
+                        nationality: nationality,
+                        role: role,
+                        earnings: earnings,
+                        highlights: highlights
+                    });
+
+                    log(`[+] Added ${playerName} | Role: ${role} | Nation: ${nationality} | Earned: ${earnings || "$0"}`);
+                    successCount++;
+
+                } catch (e) {
+                    log(`[X] Error parsing block. Did you copy the whole API string?`, "error");
+                    console.error(e);
+                }
+            }
+
+            if (successCount > 0) {
+                log(`================================`, "highlight");
+                log(`DONE! Successfully compiled ${successCount} players into the database.`, "highlight");
+                document.getElementById('download-btn').style.display = 'inline-block';
+            } else {
+                log(`No valid players were added. Check your formatting.`, "error");
+            }
+        }
+
+        function downloadJSON() {
+            if (finalDatabase.length === 0) return;
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(finalDatabase, null, 2));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "players.json");
+            document.body.appendChild(downloadAnchorNode); 
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+    </script>
+</body>
+</html>

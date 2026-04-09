@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ape Squad Overlay - Master V10 (With Spotlight)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Orbitron:wght@400;700;900&family=Roboto:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <style>
+        /* ================================================================= */
+        /*   LAYOUT MICRO-ADJUSTMENTS (EDIT THESE TO MOVE THINGS AROUND)     */
+        /* ================================================================= */
+        
+        :root {
+            /* --- GLOBAL THEME COLORS --- */
+            --ape-cyan: #01a3eb;
+            --ape-orange: #ff853b;
+            --ape-pink: #f834ac;
+            --ape-purple: #904ce2;
+            --ape-red: #e06377; 
+            --solid-bg: #0c0c0c; /* 100% Solid Background */
+            
+            --team1-gradient: linear-gradient(135deg, #ff853b, #ff5e62); 
+            --team2-gradient: linear-gradient(135deg, #ff4e94, #633fdc); 
+            --ape-spectrum: linear-gradient(90deg, var(--ape-cyan), var(--ape-orange), var(--ape-pink), var(--ape-purple));
+            
+            --font-main: 'Orbitron', sans-serif; 
+            --font-header: 'Bebas Neue', sans-serif;
+            --font-sub: 'Roboto', sans-serif;
+
+            /* --- MASTER LAYOUT COORDINATES (FALLBACKS TO PREVENT BREAKING) --- */
+            --logo-y-pos: 110px;      
+            --logo-height: 60px;     
+            --top-bar-y: 40px;          
+            --top-bar-spacing: 260px;   
+            --lower-1v1-y: 285px;       
+            --lower-1v1-x: 60px;        
+            
+            --cbox-1-y: 325px; --cbox-1-x: 60px;
+            --cbox-2-y: 700px; --cbox-2-x: 60px;
+            --cbox-3-y: 325px; --cbox-3-x: 60px;
+            --cbox-4-y: 700px; --cbox-4-x: 60px;
+        }
+
+        /* --- GAME MODE STYLES --- */
+        body.mode-pointbreak { --top-bar-spacing: 340px; }
+        body.mode-cashout .team-wrapper { opacity: 0; pointer-events: none; }
+        body.mode-cashout .cashout-container { opacity: 1; pointer-events: auto; }
+        body.mode-cashout .lower-info-container { opacity: 0; pointer-events: none; }
+
+        /* ================================================================= */
+        /*   CORE STYLES                                                     */
+        /* ================================================================= */
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body { 
+            font-family: var(--font-main); 
+            background: rgba(0,0,0,0); /* MUST stay transparent for OBS */
+            color: #fff; 
+            overflow: hidden; 
+            width: 2560px; height: 1440px; 
+            transition: all 0.5s ease;
+        }
+
+        /* --- STRICT BOUNDING BOX FOR ALL TEXT TO PREVENT OVERLAP --- */
+        .text-bounds { flex: 1; overflow: hidden; white-space: nowrap; min-width: 0; display: flex; align-items: center; }
+
+        /* --- TOP CLUSTER & LOGO --- */
+        .top-cluster { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 100%; height: 150px; z-index: 100; }
+        .title-container { position: absolute; top: var(--logo-y-pos); left: 50%; transform: translateX(-50%); height: var(--logo-height); display: flex; align-items: center; justify-content: center; z-index: 110; }
+        .top-center-logo { height: 100%; width: auto; object-fit: contain; filter: drop-shadow(0 4px 15px rgba(0,0,0,0.9)); }
+
+        /* --- TEAM SCOREBARS --- */
+        .team-wrapper { position: absolute; top: var(--top-bar-y); display: flex; align-items: center; gap: 12px; transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.5s ease; }
+        .team-wrapper.left { right: 50%; transform: translateX(calc(var(--top-bar-spacing) * -1)); }
+        .team-wrapper.right { left: 50%; transform: translateX(var(--top-bar-spacing)); }
+
+        .team-card { display: flex; align-items: center; width: 380px; height: 55px; background: var(--solid-bg); box-shadow: 0 8px 20px rgba(0,0,0,0.6); }
+        .team-card.team-left { border-bottom: 3px solid var(--ape-orange); }
+        .team-card.team-right { border-bottom: 3px solid var(--ape-pink); }
+        
+        .logo-container { width: 55px; height: 55px; flex-shrink: 0; padding: 4px; }
+        .team-left .logo-container { background: var(--team1-gradient); }
+        .team-right .logo-container { background: var(--team2-gradient); }
+        .logo { width: 100%; height: 100%; object-fit: cover; background: #000; }
+
+        .info-container { flex-grow: 1; height: 100%; display: flex; align-items: center; padding: 0 20px; overflow: hidden; }
+        .team-left .info-container { justify-content: flex-start; }
+        .team-right .info-container { justify-content: flex-end; }
+        
+        .team-name { font-family: var(--font-header); font-size: 3.4rem; letter-spacing: 1.5px; text-transform: uppercase; white-space: nowrap; text-shadow: 2px 2px 5px rgba(0,0,0,0.8); transform: translateY(2px); }
+        
+        .score-box { width: 80px; height: 75px; display: flex; align-items: center; justify-content: center; font-family: var(--font-header); font-size: 4rem; font-weight: 700; color: #fff; text-shadow: 0 3px 10px rgba(0,0,0,0.8); box-shadow: 0 8px 20px rgba(0,0,0,0.6); transform: translateY(-2px); flex-shrink: 0; }
+        .score-box.score-left { background: linear-gradient(135deg, var(--ape-orange), #c23336); border: 2px solid #222; }
+        .score-box.score-right { background: linear-gradient(135deg, #d33878, var(--ape-purple)); border: 2px solid #222; }
+
+        /* --- CASHOUT 4-TEAM SIGNS --- */
+        .cashout-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 90; opacity: 0; pointer-events: none; transition: opacity 0.5s ease; }
+        .cashout-box { position: absolute; display: flex; align-items: center; filter: drop-shadow(0 15px 25px rgba(0,0,0,0.7)); }
+
+        .c-pos-1 { top: var(--cbox-1-y); left: var(--cbox-1-x); }  
+        .c-pos-2 { top: var(--cbox-2-y); left: var(--cbox-2-x); }  
+        .c-pos-3 { top: var(--cbox-3-y); right: var(--cbox-3-x); } 
+        .c-pos-4 { top: var(--cbox-4-y); right: var(--cbox-4-x); } 
+
+        .c-logo-box { width: 85px; height: 85px; padding: 4px; z-index: 2; background: #222; box-shadow: 0 0 15px rgba(0,0,0,0.5); }
+        .c-logo-box img { width: 100%; height: 100%; object-fit: cover; }
+        
+        .c-info-bar { width: 340px; height: 65px; background: var(--solid-bg); display: flex; align-items: center; justify-content: space-between; gap: 15px; padding: 0 25px 0 45px; position: relative; }
+        .c-name { font-family: var(--font-header); white-space: nowrap; color: #fff; }
+        .c-score { color: #fff; font-family: var(--font-header); font-weight: 700; font-size: 3rem; transform: translateY(2px); flex-shrink: 0; }
+
+        .c-left .c-info-bar { margin-left: -30px; }
+        .c-right { flex-direction: row-reverse; }
+        .c-right .c-info-bar { margin-right: -30px; padding: 0 45px 0 25px; }
+
+        .c-team-1 .c-logo-box { background: var(--ape-orange); } .c-team-1 .c-info-bar { border-bottom: 4px solid var(--ape-orange); } .c-team-1 .c-score { color: var(--ape-orange); }
+        .c-team-2 .c-logo-box { background: var(--ape-pink); } .c-team-2 .c-info-bar { border-bottom: 4px solid var(--ape-pink); } .c-team-2 .c-score { color: var(--ape-pink); }
+        .c-team-3 .c-logo-box { background: var(--ape-purple); } .c-team-3 .c-info-bar { border-bottom: 4px solid var(--ape-purple); } .c-team-3 .c-score { color: var(--ape-purple); }
+        .c-team-4 .c-logo-box { background: var(--ape-red); } .c-team-4 .c-info-bar { border-bottom: 4px solid var(--ape-red); } .c-team-4 .c-score { color: var(--ape-red); }
+
+        /* --- LOWER 1v1 SIGNS --- */
+        .lower-info-container { position: absolute; top: var(--lower-1v1-y); display: flex; align-items: center; transition: opacity 0.5s; z-index: 50; }
+        .lower-left { left: var(--lower-1v1-x); filter: drop-shadow(0 10px 15px rgba(0,0,0,0.6)); }
+        .lower-right { right: var(--lower-1v1-x); filter: drop-shadow(0 10px 15px rgba(0,0,0,0.6)); }
+        .lower-logo-box { width: 70px; height: 70px; padding: 4px; z-index: 2; box-shadow: 0 0 15px rgba(0,0,0,0.5); }
+        .lower-logo-box.logo-left { background: var(--team1-gradient); }
+        .lower-logo-box.logo-right { background: var(--team2-gradient); }
+        .extra-box { width: 320px; height: 60px; background: var(--solid-bg); display: flex; align-items: center; font-family: var(--font-header); color: #fff; }
+        .extra-box-left { margin-left: -20px; justify-content: flex-start; padding-left: 35px; border-bottom: 3px solid var(--ape-orange); }
+        .extra-box-right { margin-right: -20px; justify-content: flex-end; padding-right: 35px; border-bottom: 3px solid var(--ape-pink); }
+        .extra-name { white-space: nowrap; }
+
+        /* --- BOTTOM HUD --- */
+        .hud-bottom { position: absolute; bottom: 0; left: 0; height: 80px; width: 80%; z-index: 50; filter: drop-shadow(0 -5px 15px rgba(0,0,0,0.7)); }
+        .hud-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--solid-bg); border-right: 1px solid #333; z-index: 0; }
+        .hud-bg::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: var(--ape-spectrum); box-shadow: 0 0 10px var(--ape-cyan); }
+        .center-logo-absolute { position: absolute; left: 1280px; bottom: -10px; transform: translateX(-50%); width: 300px; height: 130px; z-index: 20; display: flex; justify-content: center; align-items: flex-end; }
+        .center-logo-absolute img { height: 100%; width: auto; object-fit: contain; filter: drop-shadow(0 0 20px rgba(255,255,255,0.15)); }
+        .module-left { position: absolute; left: 60px; bottom: 0; height: 100%; display: flex; align-items: center; z-index: 15; width: 900px; overflow: hidden; white-space: nowrap; gap: 15px; }
+        .module-left .module-label { color: var(--ape-pink); }
+        .module-value { transition: opacity 0.6s ease-in-out; opacity: 1; white-space: nowrap; }
+        .fade-out { opacity: 0 !important; }
+        .module-right { position: absolute; left: 1500px; bottom: 0; height: 100%; display: flex; align-items: center; z-index: 15; width: 500px; overflow: hidden; white-space: nowrap; gap: 15px; }
+        .module-right .module-label { color: var(--ape-cyan); }
+        .module-label { font-family: var(--font-sub); font-size: 1rem; text-transform: uppercase; letter-spacing: 3px; font-weight: 900; flex-shrink: 0; }
+        .module-value { font-family: var(--font-header); font-size: 2.2rem; color: #fff; text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 2px 5px rgba(0,0,0,0.8); transform: translateY(2px);}
+
+        /* ================================================================= */
+        /*   PLAYER SPOTLIGHT CARD STYLES                                    */
+        /* ================================================================= */
+        .spotlight-container {
+            position: absolute; right: 60px; bottom: 105px; /* Sits perfectly above the bottom HUD */
+            width: 660px; background: var(--solid-bg); border-right: 6px solid var(--ape-cyan); 
+            border-radius: 8px 0 0 8px; box-shadow: -15px 15px 40px rgba(0,0,0,0.9), 0 0 20px rgba(1, 163, 235, 0.2);
+            display: flex; flex-direction: column; transform: translateX(150%); opacity: 0;
+            transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.6s ease-in-out;
+            z-index: 100;
+        }
+        .spotlight-container.active { transform: translateX(0); opacity: 1; }
+
+        .sp-header { padding: 20px 30px; background: linear-gradient(225deg, rgba(1, 163, 235, 0.15), transparent); border-bottom: 2px solid #222; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+        .sp-text-group { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+        .sp-label { font-family: var(--font-sub); font-size: 1rem; color: var(--ape-cyan); text-transform: uppercase; letter-spacing: 4px; font-weight: 900; display: flex; align-items: center; justify-content: space-between; }
+        .sp-ign { color: #888; font-size: 0.85rem; letter-spacing: 2px; }
+        .sp-name-wrapper { display: flex; align-items: center; gap: 15px; margin-top: 4px; }
+        .sp-name { font-family: var(--font-header); font-size: 4.5rem; letter-spacing: 2px; text-transform: uppercase; line-height: 0.9; text-shadow: 3px 3px 5px rgba(0,0,0,0.8); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
+        .sp-rank-box { font-family: var(--font-header); font-size: 2.2rem; color: #fff; background: linear-gradient(135deg, rgba(248, 52, 172, 0.2), rgba(144, 76, 226, 0.2)); padding: 4px 12px; border-radius: 4px; border: 1px solid var(--ape-pink); box-shadow: 0 0 10px rgba(248, 52, 172, 0.4); text-align: center; line-height: 1; letter-spacing: 1px; display: none; white-space: nowrap; flex-shrink: 0; transform: translateY(-2px); }
+        .sp-rank-box.active { display: block; }
+
+        .sp-team { font-family: var(--font-sub); font-size: 1.2rem; color: var(--ape-orange); text-transform: uppercase; font-weight: 700; letter-spacing: 2px; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .sp-meta-row { display: flex; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
+        .meta-badge { font-family: var(--font-sub); font-size: 0.85rem; font-weight: 900; letter-spacing: 1px; padding: 3px 10px; border-radius: 4px; background: #222; color: #ccc; text-transform: uppercase; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+        .meta-role { border: 1px solid rgba(255,255,255,0.2); }
+        .meta-earn { background: rgba(248, 52, 172, 0.15); color: var(--ape-pink); border: 1px solid var(--ape-pink); }
+        .meta-nation { border: 1px solid var(--ape-cyan); color: var(--ape-cyan); background: rgba(1, 163, 235, 0.1); }
+
+        .sp-visual-group { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .sp-logo-box { width: 85px; height: 85px; background: var(--team-gradient); padding: 4px; flex-shrink: 0; box-shadow: 0 0 15px rgba(0,0,0,0.8); }
+        .sp-logo-box img { width: 100%; height: 100%; object-fit: cover; background: #000; }
+
+        .sp-body { padding: 15px 30px 25px 30px; display: flex; flex-direction: column; gap: 10px; }
+        .sp-body-title { font-family: var(--font-sub); font-size: 0.9rem; color: #888; text-transform: uppercase; letter-spacing: 2px; font-weight: 900; margin-bottom: 2px; }
+        .highlight-item { display: flex; align-items: center; gap: 15px; background: #151515; padding: 10px 15px; border-left: 3px solid var(--ape-pink); border-radius: 0 4px 4px 0; }
+        .hl-placement { font-family: var(--font-header); font-size: 2rem; color: #fff; width: 85px; text-align: center; line-height: 1; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); flex-shrink: 0; }
+        .hl-details { display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
+        .hl-tourney { font-family: var(--font-header); font-size: 1.6rem; color: #ccc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1; letter-spacing: 1px; }
+        .hl-meta { font-family: var(--font-sub); font-size: 0.85rem; color: var(--ape-pink); text-transform: uppercase; font-weight: 700; letter-spacing: 1px; margin-top: 2px; }
+    </style>
+</head>
+<body class="mode-3v3">
+
+    <!-- TOP CLUSTER -->
+    <div class="top-cluster">
+        <div class="title-container"><img src="images/classics.png" alt="Classics" class="top-center-logo" onerror="this.style.display='none'"></div>
+        
+        <!-- LEFT TEAM -->
+        <div class="team-wrapper left">
+            <div class="team-card team-left">
+                <div class="logo-container"><img src="" class="logo" id="left-team-logo-main"></div>
+                <div class="info-container"><div class="text-bounds"><span class="team-name" id="left-team-name">LOADING</span></div></div>
+            </div>
+            <div class="score-box score-left" id="left-team-score">0</div>
+        </div>
+
+        <!-- RIGHT TEAM -->
+        <div class="team-wrapper right">
+            <div class="score-box score-right" id="right-team-score">0</div>
+            <div class="team-card team-right">
+                <div class="info-container"><div class="text-bounds"><span class="team-name" id="right-team-name">LOADING</span></div></div>
+                <div class="logo-container"><img src="" class="logo" id="right-team-logo-main"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CASHOUT FLOATING SIGNS -->
+    <div class="cashout-container">
+        <div class="cashout-box c-left c-pos-1 c-team-1">
+            <div class="c-logo-box"><img src="" id="c-logo-1"></div>
+            <div class="c-info-bar">
+                <div class="text-bounds"><span id="c-name-1" class="c-name">TEAM A</span></div>
+                <span class="c-score" id="c-score-1">0</span>
+            </div>
+        </div>
+        <div class="cashout-box c-left c-pos-2 c-team-2">
+            <div class="c-logo-box"><img src="" id="c-logo-2"></div>
+            <div class="c-info-bar">
+                <div class="text-bounds"><span id="c-name-2" class="c-name">TEAM B</span></div>
+                <span class="c-score" id="c-score-2">0</span>
+            </div>
+        </div>
+        <div class="cashout-box c-right c-pos-3 c-team-3">
+            <div class="c-logo-box"><img src="" id="c-logo-3"></div>
+            <div class="c-info-bar">
+                <div class="text-bounds"><span id="c-name-3" class="c-name">TEAM C</span></div>
+                <span class="c-score" id="c-score-3">0</span>
+            </div>
+        </div>
+        <div class="cashout-box c-right c-pos-4 c-team-4">
+            <div class="c-logo-box"><img src="" id="c-logo-4"></div>
+            <div class="c-info-bar">
+                <div class="text-bounds"><span id="c-name-4" class="c-name">TEAM D</span></div>
+                <span class="c-score" id="c-score-4">0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOWER FLOATING INFO (1v1) -->
+    <div class="lower-info-container lower-left">
+        <div class="lower-logo-box logo-left"><img src="" class="logo" id="left-team-logo-lower"></div>
+        <div class="extra-box extra-box-left"><div class="text-bounds"><span id="left-team-name-lower" class="extra-name"></span></div></div>
+    </div>
+    <div class="lower-info-container lower-right">
+        <div class="extra-box extra-box-right"><div class="text-bounds"><span id="right-team-name-lower" class="extra-name"></span></div></div>
+        <div class="lower-logo-box logo-right"><img src="" class="logo" id="right-team-logo-lower"></div>
+    </div>
+
+    <!-- PLAYER SPOTLIGHT CARD -->
+    <div class="spotlight-container" id="spotlight-card">
+        <div class="sp-header">
+            <div class="sp-text-group">
+                <div class="sp-label">
+                    <span>PLAYER SPOTLIGHT</span>
+                </div>
+                <div class="sp-name-wrapper">
+                    <div class="sp-name" id="sp-name">LOADING</div>
+                    <div class="sp-rank-box" id="sp-rank">GLOBAL #1</div>
+                </div>
+                <div class="sp-team" id="sp-team">LOADING TEAM</div>
+                <div class="sp-meta-row">
+                    <span class="meta-badge meta-role" id="sp-role">ROLE</span>
+                    <span class="meta-badge meta-nation" id="sp-nation-container">
+                        <img id="sp-flag" src="" style="width: 18px; height: 13px; display: none; object-fit: cover; border-radius: 2px; border: 1px solid rgba(255,255,255,0.2);">
+                        <span id="sp-nation">NATION</span>
+                    </span>
+                    <span class="meta-badge meta-earn" id="sp-earn">$0 EARNED</span>
+                </div>
+                <div class="sp-ign" id="sp-ign" style="margin-top: 8px;">EMBARK ID</div>
+            </div>
+            <div class="sp-visual-group">
+                <div class="sp-logo-box"><img src="" id="sp-team-logo" onerror="this.style.display='none'"></div>
+            </div>
+        </div>
+        <div class="sp-body" id="sp-body-container">
+            <div class="sp-body-title">CAREER HIGHLIGHTS</div>
+            <div id="highlights-container"></div>
+        </div>
+    </div>
+
+    <!-- BOTTOM HUD -->
+    <div class="hud-bottom">
+        <div class="hud-bg"></div>
+        <div class="module-left">
+            <span class="module-label">UPDATE //</span>
+            <div class="text-bounds"><span class="module-value" id="hud-cycling-info">APESQUAD.ORG</span></div>
+        </div>
+        <div class="center-logo-absolute"><img src="images/LOGO.png" alt="Ape Squad" onerror="this.style.display='none'"></div>
+        <div class="module-right">
+            <span class="module-label">TALENT //</span>
+            <div class="text-bounds"><span class="module-value" id="hud-talent-info">CASTERS</span></div>
+        </div>
+    </div>
+
+    <script>
+        const SPREADSHEET_ID = '10ZmWteGljWdAu4TIMMkKkt23jFSuuKlTtqc-bxpVvN4';
+        const SHEET_GID = '228881380';
+        const ROSTER_SHEET_GID = '1769112582';
+
+        let bannerTexts = [];
+        let currentBannerIndex = 0;
+        let isBannerCycling = false;
+        let currentPlayerDisplayed = "";
+
+        // --- SPOTLIGHT DATA MAPS ---
+        const COUNTRY_MAP = {
+            "usa": "us", "united states": "us", "us": "us", "america": "us",
+            "canada": "ca", "ca": "ca",
+            "uk": "gb", "united kingdom": "gb", "gb": "gb", "england": "gb", "great britain": "gb",
+            "france": "fr", "fr": "fr", "germany": "de", "de": "de", "spain": "es", "es": "es",
+            "italy": "it", "it": "it", "brazil": "br", "br": "br", "mexico": "mx", "mx": "mx",
+            "australia": "au", "au": "au", "japan": "jp", "jp": "jp", "korea": "kr", "south korea": "kr", "kr": "kr",
+            "sweden": "se", "se": "se", "denmark": "dk", "dk": "dk", "norway": "no", "no": "no",
+            "finland": "fi", "fi": "fi", "poland": "pl", "pl": "pl", "netherlands": "nl", "nl": "nl",
+            "belgium": "be", "be": "be", "switzerland": "ch", "ch": "ch", "austria": "at", "at": "at",
+            "portugal": "pt", "pt": "pt", "argentina": "ar", "ar": "ar", "chile": "cl", "cl": "cl"
+        };
+
+        const TIER_WEIGHTS = { "S-TIER": 100, "A-TIER": 90, "B-TIER": 80, "C-TIER": 70, "D-TIER": 60, "SHOWMATCH": 50, "QUALIFIER": 40, "MISC": 30 };
+
+        function getTierScore(tierString) {
+            const t = (tierString || "").toUpperCase();
+            for (let key in TIER_WEIGHTS) { if (t.includes(key)) return TIER_WEIGHTS[key]; }
+            return 0; 
+        }
+
+        // --- BULLETPROOF CSV PARSER ---
+        function parseCSV(text) {
+            let rows = []; let row = []; let inQuotes = false; let val = '';
+            for (let i = 0; i < text.length; i++) {
+                let c = text[i]; let next = text[i+1];
+                if (c === '"' && inQuotes && next === '"') { val += '"'; i++; } 
+                else if (c === '"') { inQuotes = !inQuotes; } 
+                else if (c === ',' && !inQuotes) { row.push(val.trim()); val = ''; } 
+                else if ((c === '\n' || c === '\r') && !inQuotes) {
+                    if (c === '\r' && next === '\n') i++; 
+                    row.push(val.trim()); rows.push(row); row = []; val = '';
+                } else { val += c; }
+            }
+            if (val !== '' || row.length > 0) { row.push(val.trim()); rows.push(row); }
+            return rows;
+        }
+
+        function getCSVVal(rows, rowIndex, colIndex) {
+            if (rows && rows[rowIndex] && rows[rowIndex][colIndex] !== undefined) {
+                return rows[rowIndex][colIndex].trim();
+            }
+            return '';
+        }
+
+        function formatTeamNameToPathSegment(name) {
+            if (!name || name.trim() === '') return 'default'; 
+            return name.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+        }
+
+        function fitTextToContainer(textElement, containerElement) {
+            let fontSize = 3.4; 
+            if (textElement.classList.contains('c-name') || textElement.classList.contains('extra-name')) fontSize = 2.6; 
+            else if (textElement.id === 'hud-talent-info' || textElement.id === 'hud-cycling-info') fontSize = 2.4; 
+            
+            textElement.style.fontSize = `${fontSize}rem`;
+            while (textElement.scrollWidth > containerElement.clientWidth && fontSize > 0.8) {
+                fontSize -= 0.1;
+                textElement.style.fontSize = `${fontSize}rem`;
+            }
+        }
+
+        function startBannerCycle() {
+            if (isBannerCycling || bannerTexts.length <= 1) return;
+            isBannerCycling = true;
+            setInterval(() => {
+                const textEl = document.getElementById('hud-cycling-info');
+                textEl.classList.add('fade-out');
+                setTimeout(() => {
+                    currentBannerIndex = (currentBannerIndex + 1) % bannerTexts.length;
+                    textEl.textContent = bannerTexts[currentBannerIndex];
+                    fitTextToContainer(textEl, textEl.parentElement); 
+                    textEl.classList.remove('fade-out');
+                }, 600);
+            }, 10000); 
+        }
+
+        // --- SPOTLIGHT DATA FETCHERS ---
+        async function fetchHighlights() {
+            try {
+                const response = await fetch(`players.json?nocache=${new Date().getTime()}`);
+                return await response.json();
+            } catch (error) { return []; }
+        }
+
+        async function fetchPlayerRank(embarkId) {
+            if(!embarkId || embarkId === "UNKNOWN") return null;
+            const encodedId = encodeURIComponent(embarkId);
+            try {
+                const response = await fetch(`https://api.the-finals-leaderboard.com/v1/leaderboard/s10/crossplay?name=${encodedId}`);
+                if (response.ok) {
+                    const json = await response.json();
+                    if (json.data && json.data.length > 0) return json.data[0].rank; 
+                }
+                return null;
+            } catch(e) { return null; }
+        }
+
+        async function fetchRosterData(targetName) {
+            try {
+                const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${ROSTER_SHEET_GID}&nocache=${new Date().getTime()}`;
+                const res = await fetch(url);
+                const csvData = await res.text();
+                const rows = parseCSV(csvData);
+                const searchTarget = targetName.toLowerCase().trim();
+
+                for(let i = 1; i < rows.length; i++) {
+                    if(rows[i].length < 4) continue;
+                    const teamName = getCSVVal(rows, i, 3);
+                    const capName = getCSVVal(rows, i, 5).toLowerCase();
+                    const p2Name = getCSVVal(rows, i, 7).toLowerCase();
+                    const p3Name = getCSVVal(rows, i, 9).toLowerCase();
+                    const subName = getCSVVal(rows, i, 11).toLowerCase();
+
+                    if(capName === searchTarget) return { team: teamName, embarkId: getCSVVal(rows, i, 6) }; 
+                    if(p2Name === searchTarget) return { team: teamName, embarkId: getCSVVal(rows, i, 8) }; 
+                    if(p3Name === searchTarget) return { team: teamName, embarkId: getCSVVal(rows, i, 10) }; 
+                    if(subName === searchTarget) return { team: teamName, embarkId: getCSVVal(rows, i, 12) }; 
+                }
+            } catch(e) { console.error("Roster Fetch Error:", e); }
+            return null;
+        }
+
+        async function updateSpotlight(playerName) {
+            const card = document.getElementById('spotlight-card');
+            
+            if (!playerName || playerName.trim() === "") {
+                card.classList.remove('active');
+                currentPlayerDisplayed = "";
+                return;
+            }
+
+            if (playerName.toLowerCase() === currentPlayerDisplayed.toLowerCase()) return; 
+
+            const rosterInfo = await fetchRosterData(playerName);
+            const teamName = rosterInfo ? rosterInfo.team : "Free Agent";
+            const embarkId = rosterInfo ? rosterInfo.embarkId : "UNKNOWN";
+
+            const jsonDB = await fetchHighlights();
+            const playerData = jsonDB.find(p => p.player && p.player.toLowerCase() === playerName.toLowerCase());
+            
+            document.getElementById('sp-name').textContent = playerName;
+            document.getElementById('sp-ign').textContent = `EMBARK ID: ${embarkId}`;
+            document.getElementById('sp-team').textContent = teamName;
+
+            const roleEl = document.getElementById('sp-role');
+            const natContainerEl = document.getElementById('sp-nation-container');
+            const natTextEl = document.getElementById('sp-nation');
+            const flagEl = document.getElementById('sp-flag');
+            const earnEl = document.getElementById('sp-earn');
+
+            if (playerData) {
+                roleEl.textContent = playerData.role || "Competitor";
+                if (playerData.nationality) {
+                    natContainerEl.style.display = "inline-flex";
+                    natTextEl.textContent = playerData.nationality;
+                    const isoCode = COUNTRY_MAP[playerData.nationality.toLowerCase().trim()];
+                    if (isoCode) { flagEl.src = `https://flagcdn.com/24x18/${isoCode}.png`; flagEl.style.display = "block"; } 
+                    else { flagEl.style.display = "none"; }
+                } else { natContainerEl.style.display = "none"; }
+                
+                if (playerData.earnings && playerData.earnings !== "null") {
+                    earnEl.style.display = "inline-flex"; earnEl.textContent = `${playerData.earnings} EARNED`;
+                } else { earnEl.style.display = "none"; }
+            } else {
+                roleEl.textContent = "Competitor";
+                natContainerEl.style.display = "none"; earnEl.style.display = "none";
+            }
+
+            const logoEl = document.getElementById('sp-team-logo');
+            logoEl.src = `images/teams/${formatTeamNameToPathSegment(teamName)}.png`;
+            logoEl.style.display = 'block'; 
+            logoEl.onerror = () => { logoEl.onerror = null; logoEl.src = 'images/LOGO.png'; };
+
+            const hlContainer = document.getElementById('highlights-container');
+            const spBodyContainer = document.getElementById('sp-body-container');
+            hlContainer.innerHTML = ""; 
+            
+            if (playerData && playerData.highlights && playerData.highlights.length > 0) {
+                let sortedHighlights =[...playerData.highlights];
+                sortedHighlights.sort((a, b) => getTierScore(b.tier) - getTierScore(a.tier));
+                
+                sortedHighlights.slice(0, 3).forEach(hl => {
+                    let metaText = hl.tier || "Tournament";
+                    hlContainer.innerHTML += `
+                        <div class="highlight-item">
+                            <div class="hl-placement">${hl.placement}</div>
+                            <div class="hl-details">
+                                <div class="hl-tourney">${hl.tournament}</div>
+                                <div class="hl-meta">${metaText}</div>
+                            </div>
+                        </div>`;
+                });
+                spBodyContainer.style.display = "flex";
+            } else { spBodyContainer.style.display = "none"; }
+
+            const rankBox = document.getElementById('sp-rank');
+            rankBox.classList.remove('active'); 
+            if (embarkId !== "UNKNOWN") {
+                const rankData = await fetchPlayerRank(embarkId);
+                if (rankData) { rankBox.textContent = `GLOBAL #${rankData}`; rankBox.classList.add('active'); }
+            }
+
+            card.classList.add('active');
+            currentPlayerDisplayed = playerName;
+        }
+
+        // --- MASTER OVERLAY UPDATER ---
+        async function updateOverlayData() {
+            try {
+                // Fetch via CSV to completely bypass the Checkbox bug
+                const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${SHEET_GID}&nocache=${new Date().getTime()}`;
+                const response = await fetch(url);
+                const csvData = await response.text();
+                const rows = parseCSV(csvData);
+
+                if(rows.length < 5) return; // Safeguard if sheet is empty
+
+                // --- 4-TEAM MODE (CASHOUT) --- Uses Rows 2 & 3 (Index 1 & 2)
+                const c_team1 = { name: getCSVVal(rows, 1, 1), score: getCSVVal(rows, 1, 2) }; 
+                const c_team2 = { name: getCSVVal(rows, 2, 1), score: getCSVVal(rows, 2, 2) }; 
+                const c_team3 = { name: getCSVVal(rows, 1, 3), score: getCSVVal(rows, 1, 4) }; 
+                const c_team4 = { name: getCSVVal(rows, 2, 3), score: getCSVVal(rows, 2, 4) }; 
+                const team4Data = [c_team1, c_team2, c_team3, c_team4];
+
+                // --- 2-TEAM MODE (3v3 / POWERSHIFT / POINTBREAK) --- Uses Row 5 (Index 4)
+                const row5_Left = { name: getCSVVal(rows, 4, 1), score: getCSVVal(rows, 4, 2) }; 
+                const row5_Right = { name: getCSVVal(rows, 4, 3), score: getCSVVal(rows, 4, 4) }; 
+
+                // --- MODE DETECTION --- Scans Column A 
+                const modeStr = (getCSVVal(rows, 1, 0) + " " + getCSVVal(rows, 2, 0) + " " + getCSVVal(rows, 3, 0) + " " + getCSVVal(rows, 4, 0)).toUpperCase();
+
+                const bodyEl = document.body;
+                const modes = ['mode-3v3', 'mode-pointbreak', 'mode-cashout'];
+                let activeMode = 'mode-3v3'; 
+                let leftTeam, rightTeam;
+
+                if (modeStr.includes('CASHOUT')) {
+                    activeMode = 'mode-cashout';
+                    leftTeam = c_team1; 
+                    rightTeam = c_team2;
+                } else if (modeStr.includes('POINTBREAK')) {
+                    activeMode = 'mode-pointbreak';
+                    leftTeam = row5_Left; 
+                    rightTeam = row5_Right;
+                } else {
+                    activeMode = 'mode-3v3';
+                    leftTeam = row5_Left;  
+                    rightTeam = row5_Right; 
+                }
+
+                if (!bodyEl.classList.contains(activeMode)) {
+                    bodyEl.classList.remove(...modes);
+                    bodyEl.classList.add(activeMode);
+                }
+
+                // --- CASTER FALLBACK SYSTEM ---
+                const casterLeft = getCSVVal(rows, 4, 7) || getCSVVal(rows, 2, 7) || getCSVVal(rows, 1, 7);
+                const casterRight = getCSVVal(rows, 4, 8) || getCSVVal(rows, 2, 8) || getCSVVal(rows, 1, 8);
+                const castersText = (casterLeft && casterRight) ? `${casterLeft} & ${casterRight}` : (casterLeft || casterRight || "CASTERS");
+
+                // --- BANNER TEXT ---
+                const newBannerTexts = [];
+                for(let i = 1; i < rows.length; i++) {
+                    const cellText = getCSVVal(rows, i, 5);
+                    if (cellText && cellText !== '') newBannerTexts.push(cellText);
+                }
+                
+                if (bannerTexts.length === 0 && newBannerTexts.length > 0) {
+                    bannerTexts = newBannerTexts;
+                    document.getElementById('hud-cycling-info').textContent = bannerTexts[0];
+                    startBannerCycle();
+                } else { bannerTexts = newBannerTexts; }
+
+                // --- SPOTLIGHT TRIGGER LOGIC (Reads L2/L3) ---
+                const rawName = getCSVVal(rows, 1, 11); // L2
+                const rawSwitch = getCSVVal(rows, 2, 11).toLowerCase(); // L3
+                const isChecked = (rawSwitch === "true" || rawSwitch === "1" || rawSwitch === "yes");
+
+                if (isChecked && rawName !== "") {
+                    updateSpotlight(rawName);
+                } else {
+                    updateSpotlight("");
+                }
+
+                // --- DOM UPDATES FOR MAIN OVERLAY ---
+                const updateImage = (id, url) => {
+                    const img = document.getElementById(id);
+                    if (!img) return;
+                    img.src = url;
+                    img.onerror = () => { img.onerror = null; img.src = 'images/LOGO.png'; };
+                };
+
+                const leftLogoUrl = `images/teams/${formatTeamNameToPathSegment(leftTeam.name)}.png`;
+                const rightLogoUrl = `images/teams/${formatTeamNameToPathSegment(rightTeam.name)}.png`;
+
+                document.getElementById('left-team-name').textContent = leftTeam.name || 'TEAM A';
+                document.getElementById('right-team-name').textContent = rightTeam.name || 'TEAM B';
+                document.getElementById('left-team-score').textContent = leftTeam.score || '0';
+                document.getElementById('right-team-score').textContent = rightTeam.score || '0';
+                
+                updateImage('left-team-logo-main', leftLogoUrl);
+                updateImage('right-team-logo-main', rightLogoUrl);
+                updateImage('left-team-logo-lower', leftLogoUrl);
+                updateImage('right-team-logo-lower', rightLogoUrl);
+                
+                document.getElementById('left-team-name-lower').textContent = leftTeam.name || 'TEAM 1';
+                document.getElementById('right-team-name-lower').textContent = rightTeam.name || 'TEAM 2';
+                
+                for (let i = 0; i < 4; i++) {
+                    const tName = team4Data[i].name || `TEAM ${['A','B','C','D'][i]}`;
+                    document.getElementById(`c-name-${i+1}`).textContent = tName;
+                    document.getElementById(`c-score-${i+1}`).textContent = team4Data[i].score || '0';
+                    updateImage(`c-logo-${i+1}`, `images/teams/${formatTeamNameToPathSegment(tName)}.png`);
+                }
+
+                const talentEl = document.getElementById('hud-talent-info');
+                talentEl.textContent = castersText;
+
+                // --- RESIZING CALLS ---
+                fitTextToContainer(talentEl, talentEl.parentElement);
+                fitTextToContainer(document.getElementById('left-team-name'), document.getElementById('left-team-name').parentElement);
+                fitTextToContainer(document.getElementById('right-team-name'), document.getElementById('right-team-name').parentElement);
+                fitTextToContainer(document.getElementById('hud-cycling-info'), document.getElementById('hud-cycling-info').parentElement);
+                for(let i=1; i<=4; i++) { fitTextToContainer(document.getElementById(`c-name-${i}`), document.getElementById(`c-name-${i}`).parentElement); }
+                fitTextToContainer(document.getElementById('left-team-name-lower'), document.getElementById('left-team-name-lower').parentElement);
+                fitTextToContainer(document.getElementById('right-team-name-lower'), document.getElementById('right-team-name-lower').parentElement);
+
+            } catch (error) { console.error("Overlay Update Error:", error); }
+        }
+
+        updateOverlayData();
+        setInterval(updateOverlayData, 5000);
+    </script>
+</body>
+</html>

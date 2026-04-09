@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>APE SQUAD - 4 Team Clash Screen</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Orbitron:wght@800;900&display=swap');
+        :root {
+            --ape-orange:#ff853b; --ape-pink:#f834ac; --ape-purple:#904ce2; --ape-red:#e06377;
+            --moon-black:#000000; --font-tech:'Orbitron',sans-serif;
+            --dot-pattern:radial-gradient(rgba(0,0,0,0.5) 2px,transparent 2px);
+            --comic-shadow:-2px -2px 0 #000,2px -2px 0 #000,-2px 2px 0 #000,2px 2px 0 #000,6px 6px 0px #000;
+        }
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{background:transparent;width:2560px;height:1440px;overflow:hidden;font-family:var(--font-tech);position:relative}
+        .overlay-background{position:absolute;inset:0;z-index:-1;background:radial-gradient(circle at center,#101018 0%,#000 100%)}
+        .overlay-background::before{content:'';position:absolute;inset:0;
+            background-image:repeating-linear-gradient(to right,transparent,transparent 79px,rgba(255,255,255,0.05) 80px),repeating-linear-gradient(to bottom,transparent,transparent 79px,rgba(255,255,255,0.05) 80px);
+            animation:moveGrid 30s linear infinite}
+        .clash-container{position:relative;width:100%;height:100%;display:flex;align-items:center}
+        
+        .team-panel{width:25%;flex:0 0 25%;height:100%;position:relative;background-color:rgba(10,10,15,0.85);
+            background-image:var(--dot-pattern);background-size:10px 10px;
+            display:flex;flex-direction:column;justify-content:center;align-items:center;
+            border-right:4px solid #000;opacity:0;z-index:5;overflow:hidden}
+        .team-panel:last-child{border-right:none}
+        
+        /* Slide in durations and delays match the JS scheduler exactly */
+        #panel-1{animation:slideInDown 0.8s 0s cubic-bezier(0.25,1,0.5,1) forwards;border-bottom:15px solid var(--ape-orange); --team-color: var(--ape-orange);}
+        #panel-2{animation:slideInUp 0.8s 0.15s cubic-bezier(0.25,1,0.5,1) forwards;border-top:15px solid var(--ape-pink); --team-color: var(--ape-pink);}
+        #panel-3{animation:slideInDown 0.8s 0.30s cubic-bezier(0.25,1,0.5,1) forwards;border-bottom:15px solid var(--ape-purple); --team-color: var(--ape-purple);}
+        #panel-4{animation:slideInUp 0.8s 0.45s cubic-bezier(0.25,1,0.5,1) forwards;border-top:15px solid var(--ape-red); --team-color: var(--ape-red);}
+        
+        #panel-1::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at bottom,rgba(255,133,59,0.15),transparent 70%);z-index:-1}
+        #panel-2::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at top,rgba(248,52,172,0.15),transparent 70%);z-index:-1}
+        #panel-3::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at bottom,rgba(144,76,226,0.15),transparent 70%);z-index:-1}
+        #panel-4::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at top,rgba(224,99,119,0.15),transparent 70%);z-index:-1}
+        
+        .panel-content{display:flex;flex-direction:column;align-items:center;gap:30px;width:90%; opacity: 1;}
+        
+        .team-logo{width:100%;max-width:300px;height:300px;object-fit:contain;filter:drop-shadow(8px 8px 0px #000); opacity: 0; transform: scale(0.2);}
+        .team-logo.logo-reveal { opacity: 1; transform: scale(1); transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        
+        .team-name{font-size:5.5rem;font-weight:900;letter-spacing:2px;color:#fff;text-transform:uppercase;text-shadow:var(--comic-shadow);width:100%;text-align:center;white-space:nowrap;line-height:1.1;min-height:1.1em; opacity: 0;}
+        .team-score{font-size:7.5rem;font-weight:900;color:var(--team-color);text-shadow:var(--comic-shadow);background-color:rgba(0,0,0,0.6);padding:15px 0;border-radius:12px;width:250px;text-align:center;line-height:1; border: 4px solid var(--team-color); opacity: 0;}
+
+        .name-slam { animation: nameSlamAnim 0.4s cubic-bezier(0.1, 0.9, 0.2, 1) forwards; }
+        @keyframes nameSlamAnim {
+            0% { transform: scale(3) translateY(-30px); opacity: 0; filter: blur(10px) brightness(3); }
+            30% { transform: scale(0.9) translateY(0); opacity: 1; filter: blur(0) brightness(2); }
+            50% { transform: scale(1.05); filter: brightness(1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .score-stamp { animation: scoreStampAnim 0.5s cubic-bezier(0.1, 0.9, 0.2, 1) forwards; }
+        @keyframes scoreStampAnim {
+            0% { transform: scale(2.5) rotate(-15deg); opacity: 0; box-shadow: 0 0 100px 30px var(--team-color); background-color: #fff; color: #fff; }
+            20% { transform: scale(0.9) rotate(5deg); opacity: 1; box-shadow: 0 0 50px 10px var(--team-color); background-color: var(--team-color); color: #000; }
+            40% { transform: scale(1.05) rotate(-2deg); box-shadow: 0 0 20px 5px var(--team-color); }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; box-shadow: inset 0 0 20px rgba(255,255,255,0.1), 8px 8px 0px #000; background-color: rgba(0,0,0,0.6); color: var(--team-color); }
+        }
+
+        .panel-shake { animation: panelShakeAnim 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
+        @keyframes panelShakeAnim {
+            0%, 100% { transform: translate3d(0, 0, 0); }
+            10%, 30%, 50%, 70%, 90% { transform: translate3d(-6px, 6px, 0); }
+            20%, 40%, 60%, 80% { transform: translate3d(6px, -6px, 0); }
+        }
+
+        .panel-shudder { animation: panelShudderAnim 0.8s cubic-bezier(0.1, 0.9, 0.2, 1) forwards; }
+        @keyframes panelShudderAnim {
+            0% { filter: brightness(2) contrast(1.5); transform: scale(1.05) translateY(15px); }
+            15% { transform: scale(0.98) translateY(-10px); }
+            30% { transform: scale(1.02) translateY(5px); }
+            100% { filter: brightness(1) contrast(1); transform: scale(1) translateY(0); }
+        }
+
+        .glitch-text { 
+            opacity: 1 !important;
+            animation: glitchTextAnim 0.4s steps(2, end) forwards, finalHoverPulse 3s ease-in-out 0.4s infinite alternate forwards; 
+        }
+        @keyframes glitchTextAnim {
+            0% { transform: translate(0); text-shadow: var(--comic-shadow); }
+            20% { transform: translate(-4px, 4px); text-shadow: -4px 0 red, 4px 0 cyan, var(--comic-shadow); filter: brightness(2); }
+            40% { transform: translate(4px, -4px); text-shadow: 4px 0 red, -4px 0 cyan, var(--comic-shadow); }
+            60% { transform: translate(-2px, 2px); text-shadow: -2px 0 red, 2px 0 cyan, var(--comic-shadow); filter: brightness(1); }
+            80% { transform: translate(2px, -2px); text-shadow: 2px 0 red, -2px 0 cyan, var(--comic-shadow); }
+            100% { transform: translate(0); text-shadow: var(--comic-shadow); }
+        }
+        @keyframes finalHoverPulse {
+            0% { transform: translateY(0px) scale(1); filter: brightness(1) drop-shadow(0 0 0px transparent); }
+            100% { transform: translateY(-4px) scale(1.02); filter: brightness(1.2) drop-shadow(0 0 12px var(--team-color)); }
+        }
+
+        /* LIGHTNING SEAMS */
+        .vs-seam { position: absolute; top: 0; height: 100%; width: 0; z-index: 30; pointer-events: none; overflow: visible; }
+        #vs-seam-1 { left: 25%; } #vs-seam-2 { left: 50%; } #vs-seam-3 { left: 75%; }
+
+        .vs-line {
+            position: absolute; left: 50%; top: 0; width: 4px; height: 100%;
+            background: #fff; transform: translateX(-50%) scaleX(0); opacity: 0;
+            box-shadow: 0 0 30px 10px rgba(255, 255, 255, 0.8);
+        }
+        .vs-line.fire { animation: lineStrike 0.4s cubic-bezier(0.1, 0.9, 0.2, 1) forwards; }
+        @keyframes lineStrike {
+            0% { transform: translateX(-50%) scaleX(0); opacity: 1; }
+            15% { transform: translateX(-50%) scaleX(15); opacity: 1; filter: brightness(2); }
+            100% { transform: translateX(-50%) scaleX(0); opacity: 0; }
+        }
+
+        @keyframes moveGrid{to{background-position:-80px -80px}}
+        @keyframes slideInDown{from{opacity:0;transform:translateY(-100%)}to{opacity:1;transform:translateY(0)}}
+        @keyframes slideInUp{from{opacity:0;transform:translateY(100%)}to{opacity:1;transform:translateY(0)}}
+
+        /* RISER TENSION OVERLAY */
+        #riser-overlay{
+            position:fixed;inset:0;z-index:50;pointer-events:none;
+            background:radial-gradient(ellipse at center, transparent 20%, rgba(0,0,0,0.0) 100%);
+            opacity:0;
+        }
+        #riser-overlay.building{
+            animation: riserBuild 1.6s cubic-bezier(0.4,0,1,1) forwards;
+        }
+        #riser-overlay.release{
+            animation: riserRelease 0.6s ease-out forwards;
+        }
+        @keyframes riserBuild{
+            0%   { opacity:0; background:radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.0) 100%); }
+            30%  { opacity:1; background:radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.55) 100%); }
+            70%  { background:radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.75) 100%); }
+            100% { background:radial-gradient(ellipse at center, transparent 10%, rgba(0,0,0,0.92) 100%); }
+        }
+        @keyframes riserRelease{
+            0%   { opacity:1; }
+            100% { opacity:0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="overlay-background"></div>
+    <div id="riser-overlay"></div>
+    <div class="clash-container">
+        <div class="team-panel" id="panel-1"><div class="panel-content">
+            <img src="" class="team-logo" id="logo-1">
+            <h2 class="team-name" id="name-1">LOADING</h2>
+            <div class="team-score" id="score-1">0</div>
+        </div></div>
+        <div class="team-panel" id="panel-2"><div class="panel-content">
+            <img src="" class="team-logo" id="logo-2">
+            <h2 class="team-name" id="name-2">LOADING</h2>
+            <div class="team-score" id="score-2">0</div>
+        </div></div>
+        <div class="team-panel" id="panel-3"><div class="panel-content">
+            <img src="" class="team-logo" id="logo-3">
+            <h2 class="team-name" id="name-3">LOADING</h2>
+            <div class="team-score" id="score-3">0</div>
+        </div></div>
+        <div class="team-panel" id="panel-4"><div class="panel-content">
+            <img src="" class="team-logo" id="logo-4">
+            <h2 class="team-name" id="name-4">LOADING</h2>
+            <div class="team-score" id="score-4">0</div>
+        </div></div>
+
+        <!-- LIGHTNING SEAMS -->
+        <div class="vs-seam" id="vs-seam-1">
+            <div class="vs-line" id="vs-line-1"></div>
+        </div>
+        <div class="vs-seam" id="vs-seam-2">
+            <div class="vs-line" id="vs-line-2"></div>
+        </div>
+        <div class="vs-seam" id="vs-seam-3">
+            <div class="vs-line" id="vs-line-3"></div>
+        </div>
+    </div>
+
+    <script>
+    // ================================================================
+    //  PRECISION SCHEDULED AUDIO ENGINE - KICKS REMOVED, ESport VIBE
+    // ================================================================
+    let _ctx = null;
+    let masterGain = null;
+    let masterReverb = null;
+
+    function getCtx() {
+        if (!_ctx) {
+            _ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+            masterGain = _ctx.createGain();
+            masterGain.gain.value = 0.20; 
+            masterGain.connect(_ctx.destination);
+
+            const verbNode = buildReverb(_ctx, 2.0, 2.5);
+            const verbGain = _ctx.createGain();
+            verbGain.gain.value = 0.15;
+            verbNode.connect(verbGain);
+            verbGain.connect(masterGain);
+            masterReverb = verbNode;
+        }
+        if (_ctx.state === 'suspended') _ctx.resume();
+        return _ctx;
+    }
+
+    function buildReverb(ctx, secs, decay) {
+        const len = ctx.sampleRate * secs;
+        const buf = ctx.createBuffer(2, len, ctx.sampleRate);
+        for (let c = 0; c < 2; c++) {
+            const d = buf.getChannelData(c);
+            for (let i = 0; i < len; i++) {
+                const offset = c === 0 ? 0 : 0.01 * ctx.sampleRate;
+                if (i > offset) d[i] = (Math.random()*2-1) * Math.pow(1-(i-offset)/len, decay);
+            }
+        }
+        const conv = ctx.createConvolver(); conv.buffer = buf; return conv;
+    }
+
+    function makeNoise(ctx, dur) {
+        const len = Math.ceil(ctx.sampleRate * dur);
+        const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+        const d = buf.getChannelData(0);
+        for (let i = 0; i < len; i++) d[i] = Math.random()*2-1;
+        const src = ctx.createBufferSource(); src.buffer = buf; return src;
+    }
+
+    // Melodic tone on landing
+    function playTone(ctx, freq, t, vol, panValue) {
+        const pan = ctx.createStereoPanner(); pan.pan.value = panValue;
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(vol, t + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 1.8);
+        g.connect(pan); pan.connect(masterReverb); pan.connect(masterGain);
+
+        const osc = ctx.createOscillator(); osc.type = 'sine';
+        osc.frequency.value = freq;
+        osc.connect(g);
+        osc.start(t); osc.stop(t + 2.0);
+    }
+
+    // PURE AIR WHOOSHES (No 808 sub kicks)
+    function playWhoosh1(t, panValue) {
+        try {
+            const ctx = getCtx(); const dur = 0.75;
+            const pan = ctx.createStereoPanner(); pan.pan.value = panValue; pan.connect(masterGain);
+
+            const n = makeNoise(ctx, dur);
+            const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 2.5;
+            f.frequency.setValueAtTime(3000, t); f.frequency.exponentialRampToValueAtTime(150, t + dur);
+            const g = ctx.createGain();
+            g.gain.setValueAtTime(0.25, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+            n.connect(f); f.connect(g); g.connect(pan);
+            n.start(t); n.stop(t + dur);
+        } catch(e){}
+    }
+
+    function playWhoosh2(t, panValue) {
+        try {
+            const ctx = getCtx(); const dur = 0.7;
+            const pan = ctx.createStereoPanner(); pan.pan.value = panValue; pan.connect(masterGain);
+
+            const n = makeNoise(ctx, dur);
+            const f = ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 1200;
+            const f2 = ctx.createBiquadFilter(); f2.type = 'lowpass';
+            f2.frequency.setValueAtTime(1800, t); f2.frequency.exponentialRampToValueAtTime(6000, t + dur);
+            const g = ctx.createGain();
+            g.gain.setValueAtTime(0.22, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+            n.connect(f); f.connect(f2); f2.connect(g); g.connect(pan);
+            n.start(t); n.stop(t + dur);
+        } catch(e){}
+    }
+
+    function playWhoosh3(t, panValue) {
+        try {
+            const ctx = getCtx(); const dur = 0.65;
+            const pan = ctx.createStereoPanner(); pan.pan.value = panValue; pan.connect(masterGain);
+
+            const n = makeNoise(ctx, dur);
+            const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 4;
+            f.frequency.setValueAtTime(4000, t); f.frequency.exponentialRampToValueAtTime(600, t + dur);
+            const g = ctx.createGain();
+            g.gain.setValueAtTime(0.22, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+            n.connect(f); f.connect(g); g.connect(pan);
+            n.start(t); n.stop(t + dur);
+        } catch(e){}
+    }
+
+    function playWhoosh4(t, panValue) {
+        try {
+            const ctx = getCtx(); const dur = 0.8;
+            const pan = ctx.createStereoPanner(); pan.pan.value = panValue; pan.connect(masterGain);
+
+            const n = makeNoise(ctx, dur);
+            const f = ctx.createBiquadFilter(); f.type = 'lowpass';
+            f.frequency.setValueAtTime(1500, t); f.frequency.exponentialRampToValueAtTime(200, t + dur);
+            const g = ctx.createGain();
+            g.gain.setValueAtTime(0.25, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+            n.connect(f); f.connect(g); g.connect(pan);
+            n.start(t); n.stop(t + dur);
+        } catch(e){}
+    }
+
+    const panelWhooshes = [playWhoosh1, playWhoosh2, playWhoosh3, playWhoosh4];
+
+    // DIGITAL UI SNAP FOR PANEL LANDING (No thud)
+    function playPanelLock(t, panValue) {
+        try {
+            const ctx = getCtx();
+            const p = ctx.createStereoPanner(); p.pan.value = panValue; p.connect(masterGain);
+            
+            // sharp noise snap (like a hi-hat)
+            const n = makeNoise(ctx, 0.15);
+            const f = ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 3000;
+            const g = ctx.createGain(); 
+            g.gain.setValueAtTime(0.3, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+            n.connect(f); f.connect(g); g.connect(p);
+            n.start(t); n.stop(t + 0.15);
+            
+            // high-tech synth click
+            const osc = ctx.createOscillator(); osc.type = 'square';
+            osc.frequency.setValueAtTime(1000, t); osc.frequency.exponentialRampToValueAtTime(200, t + 0.05);
+            const og = ctx.createGain();
+            og.gain.setValueAtTime(0.15, t); og.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+            osc.connect(og); og.connect(p);
+            osc.start(t); osc.stop(t + 0.1);
+        } catch(e){}
+    }
+
+    function playBigRiser(t) {
+        try {
+            const ctx = getCtx(); const dur = 1.6;
+            const n = makeNoise(ctx, dur);
+            const bpf = ctx.createBiquadFilter(); bpf.type = 'bandpass'; bpf.Q.value = 1.2;
+            bpf.frequency.setValueAtTime(100, t); bpf.frequency.exponentialRampToValueAtTime(6000, t + dur);
+            const g = ctx.createGain();
+            g.gain.setValueAtTime(0.0, t); g.gain.linearRampToValueAtTime(0.65, t + dur * 0.9);
+            g.gain.linearRampToValueAtTime(0.0, t + dur);
+            n.connect(bpf); bpf.connect(g); g.connect(masterGain);
+            n.start(t); n.stop(t + dur + 0.05);
+        } catch(e){}
+    }
+
+    function playStampClick(t, vol, panValue) {
+        try {
+            const ctx = getCtx();
+            const pan = ctx.createStereoPanner(); pan.pan.value = panValue; pan.connect(masterGain);
+            
+            // Light click (no kick)
+            const osc = ctx.createOscillator(); osc.type = 'sine';
+            osc.frequency.setValueAtTime(300, t); osc.frequency.exponentialRampToValueAtTime(100, t + 0.08);
+            const g = ctx.createGain();
+            g.gain.setValueAtTime(vol * 0.4, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+            osc.connect(g); g.connect(pan);
+            osc.start(t); osc.stop(t + 0.14);
+        } catch(e){}
+    }
+
+    // AGGRESSIVE CRUNCH FOR THE FINALE SLAM
+    function playSlam(t) {
+        try {
+            const ctx = getCtx();
+            
+            // Mid-high crunch
+            const n = makeNoise(ctx, 1.0);
+            const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 0.5;
+            f.frequency.setValueAtTime(4000, t); f.frequency.exponentialRampToValueAtTime(200, t + 0.6);
+            const g = ctx.createGain();
+            g.gain.setValueAtTime(0.5, t); g.gain.exponentialRampToValueAtTime(0.001, t + 1.0);
+            n.connect(f); f.connect(g); g.connect(masterGain);
+            n.start(t); n.stop(t + 1.0);
+            
+            // Metallic scrape
+            const osc = ctx.createOscillator(); osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(400, t); osc.frequency.linearRampToValueAtTime(150, t + 0.3);
+            const og = ctx.createGain();
+            og.gain.setValueAtTime(0.25, t); og.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+            osc.connect(og); og.connect(masterReverb); og.connect(masterGain);
+            osc.start(t); osc.stop(t + 0.7);
+        } catch(e){}
+    }
+
+    function playFinaleSwell(t) {
+        try {
+            const ctx = getCtx();
+            const chordRoot = 87.31;
+            const swellGain = ctx.createGain();
+            swellGain.gain.setValueAtTime(0, t);
+            swellGain.gain.linearRampToValueAtTime(0.3, t + 0.4); 
+            swellGain.gain.exponentialRampToValueAtTime(0.001, t + 3.0); 
+            swellGain.connect(masterReverb); swellGain.connect(masterGain);
+
+            [1, 1.25, 1.5, 2].forEach((ratio, i) => {
+                const osc = ctx.createOscillator(); osc.type = 'sine';
+                osc.frequency.value = chordRoot * ratio;
+                const p = ctx.createStereoPanner(); p.pan.value = (i % 2 === 0 ? -0.4 : 0.4);
+                osc.connect(p); p.connect(swellGain);
+                osc.start(t); osc.stop(t + 3.2);
+            });
+        } catch(e){}
+    }
+
+    // ================================================================
+    //  PRECISION TIMING DIRECTOR
+    // ================================================================
+    function triggerEntryAnimations() {
+        const ctx = getCtx();
+        const t0 = ctx.currentTime + 0.1; // Schedule timeline 100ms from now
+
+        const panelDelays = [0, 0.15, 0.30, 0.45]; // Exactly matches CSS delays
+        const slideDur = 0.8;
+        const pans = [-0.8, -0.3, 0.3, 0.8];
+        const scale = [130.81, 116.54, 103.83, 87.31];
+
+        // Start Riser 
+        playBigRiser(t0);
+        document.getElementById('riser-overlay').classList.add('building');
+
+        // Schedule perfectly synced Panel Audios & Visual Triggers
+        panelDelays.forEach((delaySec, idx) => {
+            const slideStart = t0 + delaySec;
+            const landTime = slideStart + slideDur;
+            
+            // Audio (Precise Context Clock)
+            panelWhooshes[idx](slideStart, pans[idx]);
+            playPanelLock(landTime, pans[idx]);
+            playTone(ctx, scale[idx], landTime + 0.02, 0.25, pans[idx]);
+            playStampClick(landTime + 0.08, 0.7, pans[idx]);
+
+            // Visuals (Converted to JS timeouts safely aligned with audio clock)
+            const msToLand = (landTime - ctx.currentTime) * 1000;
+            setTimeout(() => {
+                document.getElementById(`panel-${idx+1}`).classList.add('panel-shake');
+                document.getElementById(`logo-${idx+1}`).classList.add('logo-reveal');
+                document.getElementById(`name-${idx+1}`).classList.add('name-slam');
+                
+                setTimeout(() => {
+                    document.getElementById(`score-${idx+1}`).classList.add('score-stamp');
+                }, 80);
+            }, msToLand);
+        });
+
+        // The Grand Finale (Lightning Slams & Shudders)
+        const finaleTime = t0 + 1.6; // 1.6s offset exactly
+        playSlam(finaleTime);
+        playFinaleSwell(finaleTime);
+        
+        const msToFinale = (finaleTime - ctx.currentTime) * 1000;
+        setTimeout(() => {
+            // Visual Overlay Release
+            const riserEl = document.getElementById('riser-overlay');
+            riserEl.classList.remove('building');
+            riserEl.classList.add('release');
+
+            // Trigger Lightning Strikes on Seams
+            [1, 2, 3].forEach(n => {
+                document.getElementById('vs-line-'+n).classList.add('fire');
+            });
+
+            // Trigger final panel shudders and text glitch
+            for(let i=1; i<=4; i++) {
+                const panel = document.getElementById(`panel-${i}`);
+                const nameEl = document.getElementById(`name-${i}`);
+                const scoreEl = document.getElementById(`score-${i}`);
+
+                nameEl.style.opacity = '1';
+                scoreEl.style.opacity = '1';
+                scoreEl.style.boxShadow = 'inset 0 0 20px rgba(255,255,255,0.1), 8px 8px 0px #000';
+
+                panel.classList.add('panel-shudder');
+                nameEl.classList.add('glitch-text');
+                scoreEl.classList.add('glitch-text');
+            }
+        }, msToFinale);
+    }
+
+    // ================================================================
+    //  DATA FETCHING (MAPPED TO MASTER SHEET FOR CASHOUT)
+    // ================================================================
+    const SPREADSHEET_ID = '10ZmWteGljWdAu4TIMMkKkt23jFSuuKlTtqc-bxpVvN4';
+    const SHEET_GID = '228881380';
+    const API_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&gid=${SHEET_GID}&nocache=${new Date().getTime()}`;
+
+    function getCellValue(rows,r,c){return rows[r]?.c?.[c]?.v??''}
+    
+    function formatPath(name){
+        if(!name||typeof name!=='string') return 'default';
+        return name.trim().toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
+    }
+    
+    function adjustFontSize(el){
+        el.style.fontSize='5.5rem';
+        setTimeout(()=>{
+            const pw=el.parentElement.clientWidth; let s=5.5;
+            while(el.scrollWidth>pw&&s>1.5){s-=0.1;el.style.fontSize=s+'rem'}
+        },10);
+    }
+
+    async function loadOverlayData(){
+        try{
+            const res=await fetch(API_URL);
+            if(!res.ok)throw new Error('HTTP '+res.status);
+            const text=await res.text();
+            const json=JSON.parse(text.substring(47,text.length-2));
+            const rows=json.table.rows;
+            
+            // Maps exactly to the Master Overlay logic for Cashout
+            const teams=[
+                {name:getCellValue(rows,0,1),score:getCellValue(rows,0,2).toString()}, // Row 2 (B, C) - Team 1
+                {name:getCellValue(rows,1,1),score:getCellValue(rows,1,2).toString()}, // Row 3 (B, C) - Team 2
+                {name:getCellValue(rows,0,3),score:getCellValue(rows,0,4).toString()}, // Row 2 (D, E) - Team 3
+                {name:getCellValue(rows,1,3),score:getCellValue(rows,1,4).toString()}, // Row 3 (D, E) - Team 4
+            ];
+            
+            for(let i=0;i<4;i++){
+                const idx=i+1;
+                const name = teams[i].name || 'TEAM '+idx;
+                const score = teams[i].score || '0';
+                const path = formatPath(name);
+                
+                const logoEl=document.getElementById('logo-'+idx);
+                // Matched to the folder structure of your master game overlay
+                logoEl.src = `images/teams/${path}.png`;
+                logoEl.onerror = () => { logoEl.onerror = null; logoEl.src = 'images/LOGO.png'; };
+                
+                const nameEl=document.getElementById('name-'+idx);
+                nameEl.textContent=name; 
+                adjustFontSize(nameEl);
+                
+                document.getElementById('score-'+idx).textContent=score;
+            }
+        }catch(err){console.error('Sheet error:',err)}
+    }
+
+    document.addEventListener('DOMContentLoaded', async ()=>{
+        await loadOverlayData();
+        triggerEntryAnimations();
+    });
+    </script>
+</body>
+</html>

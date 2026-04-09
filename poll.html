@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ape Squad - Live Poll Overlay</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Orbitron:wght@400;700;900&family=Roboto:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* APE SQUAD BRAND COLORS */
+            --ape-cyan: #01a3eb; 
+            --ape-orange: #ff853b; 
+            --ape-pink: #f834ac; 
+            --ape-purple: #904ce2;
+            --solid-bg: #0c0c0c; 
+            
+            /* FONTS */
+            --font-main: 'Orbitron', sans-serif; 
+            --font-header: 'Bebas Neue', sans-serif; 
+            --font-sub: 'Roboto', sans-serif;
+
+            /* THEME GRADIENTS */
+            --bg-gradient: linear-gradient(135deg, rgba(12,12,12,0.95), rgba(18,18,18,0.98));
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        /* OBS Canvas Size setup */
+        body { 
+            font-family: var(--font-main); 
+            background: rgba(0,0,0,0); /* Transparent for OBS */
+            color: #fff; 
+            overflow: hidden; 
+            width: 1920px; 
+            height: 1080px; 
+        }
+
+        /* --- POLL CONTAINER (ANCHORED TOP RIGHT) --- */
+        .poll-container {
+            position: absolute; 
+            right: 60px; 
+            top: 60px; 
+            width: 420px; 
+            background: var(--bg-gradient);
+            border-top: 6px solid var(--ape-pink); 
+            border-radius: 0 0 8px 8px; 
+            box-shadow: -10px 15px 30px rgba(0,0,0,0.8), 0 0 20px rgba(248, 52, 172, 0.15);
+            display: flex; 
+            flex-direction: column;
+            
+            /* Animation */
+            transform: translateY(-150%);
+            opacity: 0;
+            transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.6s ease-in-out;
+            z-index: 100;
+        }
+
+        .poll-container.active { 
+            transform: translateY(0); 
+            opacity: 1; 
+        }
+
+        /* --- HEADER --- */
+        .poll-header {
+            padding: 20px 25px 15px 25px; 
+            background: linear-gradient(180deg, rgba(248, 52, 172, 0.1), transparent);
+            border-bottom: 2px solid #222;
+        }
+
+        .poll-label {
+            font-family: var(--font-sub); 
+            font-size: 1rem; 
+            color: var(--ape-pink); 
+            text-transform: uppercase; 
+            letter-spacing: 4px; 
+            font-weight: 900;
+            display: flex; 
+            align-items: center; 
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        /* Live pulsating dot */
+        .live-dot {
+            width: 10px; height: 10px;
+            background-color: var(--ape-pink);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--ape-pink);
+            animation: pulse 1.5s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.8; }
+            100% { transform: scale(1.3); opacity: 1; box-shadow: 0 0 15px var(--ape-pink); }
+        }
+
+        .poll-question {
+            font-family: var(--font-header); 
+            font-size: 2.5rem; 
+            letter-spacing: 2px; 
+            text-transform: uppercase; 
+            line-height: 1; 
+            text-shadow: 3px 3px 5px rgba(0,0,0,0.8);
+            color: #fff;
+        }
+
+        /* --- POLL OPTIONS BODY --- */
+        .poll-body {
+            padding: 20px 25px; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 18px;
+        }
+
+        .poll-option {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .po-details {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .po-title {
+            font-family: var(--font-main);
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #ddd;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+        }
+
+        .po-percent {
+            font-family: var(--font-header);
+            font-size: 1.6rem;
+            line-height: 0.8;
+            color: #fff;
+            text-shadow: 0 0 8px rgba(255,255,255,0.3);
+        }
+
+        /* Progress Bar Setup */
+        .po-bar-bg {
+            width: 100%;
+            height: 14px;
+            background: #111;
+            border-radius: 4px;
+            border: 1px solid #333;
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.5);
+        }
+
+        .po-bar-fill {
+            height: 100%;
+            width: 0%; /* Dynamic via JS */
+            border-radius: 3px;
+            transition: width 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+            position: relative;
+        }
+
+        /* Glossy overlay effect for the bars */
+        .po-bar-fill::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(180deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 100%);
+        }
+
+        /* Color classes assigned dynamically in JS */
+        .color-cyan { background: var(--ape-cyan); box-shadow: 0 0 10px var(--ape-cyan); color: var(--ape-cyan); }
+        .color-orange { background: var(--ape-orange); box-shadow: 0 0 10px var(--ape-orange); color: var(--ape-orange); }
+        .color-purple { background: var(--ape-purple); box-shadow: 0 0 10px var(--ape-purple); color: var(--ape-purple); }
+        .color-pink { background: var(--ape-pink); box-shadow: 0 0 10px var(--ape-pink); color: var(--ape-pink); }
+
+        /* --- FOOTER --- */
+        .poll-footer {
+            background: #080808;
+            padding: 12px 25px;
+            border-top: 1px solid #222;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 0 0 8px 8px;
+        }
+
+        .pf-text {
+            font-family: var(--font-sub);
+            font-size: 0.85rem;
+            color: #777;
+            text-transform: uppercase;
+            font-weight: 900;
+            letter-spacing: 2px;
+        }
+        
+        .pf-highlight {
+            color: #fff;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- POLL WIDGET -->
+    <div class="poll-container" id="poll-card">
+        
+        <div class="poll-header">
+            <div class="poll-label" id="top-label">
+                <div class="live-dot"></div> LIVE POLL
+            </div>
+            <div class="poll-question" id="poll-question">LOADING QUESTION...</div>
+        </div>
+
+        <div class="poll-body" id="poll-options-container">
+            <!-- Options dynamically injected here -->
+        </div>
+
+        <div class="poll-footer">
+            <div class="pf-text">TOTAL VOTES: <span class="pf-highlight" id="poll-total-votes">0</span></div>
+            <div class="pf-text" id="poll-timer" style="color: var(--ape-orange);">VOTING OPEN</div>
+        </div>
+
+    </div>
+
+    <script>
+        // =======================================================
+        // 🔴🔴🔴 YOUR TWITCH INFO GOES HERE 🔴🔴🔴
+        // =======================================================
+        
+        // 1. Get this number by typing apesquadorg into https://www.streamweasels.com/tools/twitch-id-converter/
+        const TWITCH_BROADCASTER_ID = '1244098727'; 
+        
+        // 2. Paste the token you got from the localhost URL bar here:
+        const TWITCH_ACCESS_TOKEN = 'pq73x2f88ep7grjs71mkryzmjbpg4w';
+        
+        // (Your App Client ID is already filled in!)
+        const TWITCH_CLIENT_ID = '5re92foil9h4l73vwnz95f0hvq04ac';
+        
+        // =======================================================
+        
+        
+        const themeColors = ['color-cyan', 'color-orange', 'color-purple', 'color-pink'];
+        let currentPollId = null;
+
+        // Renders the HTML inside the poll box
+        function renderPoll(pollData) {
+            document.getElementById('poll-question').textContent = pollData.question;
+            document.getElementById('poll-total-votes').textContent = pollData.totalVotes.toLocaleString();
+            
+            const container = document.getElementById('poll-options-container');
+            container.innerHTML = ''; 
+
+            pollData.options.forEach((opt, index) => {
+                let percent = pollData.totalVotes > 0 ? Math.round((opt.votes / pollData.totalVotes) * 100) : 0;
+                let colorClass = themeColors[index % themeColors.length];
+
+                const optionHTML = `
+                    <div class="poll-option">
+                        <div class="po-details">
+                            <span class="po-title">${opt.title}</span>
+                            <span class="po-percent" style="color: var(--ape-${colorClass.split('-')[1]});">${percent}%</span>
+                        </div>
+                        <div class="po-bar-bg">
+                            <div class="po-bar-fill ${colorClass}" style="width: ${percent}%;"></div>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += optionHTML;
+            });
+        }
+
+        // Connects to Twitch and pulls live data
+        async function fetchLiveTwitchPoll() {
+            const url = `https://api.twitch.tv/helix/polls?broadcaster_id=${TWITCH_BROADCASTER_ID}`;
+            
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'Client-ID': TWITCH_CLIENT_ID,
+                        'Authorization': `Bearer ${TWITCH_ACCESS_TOKEN}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.data && data.data.length > 0) {
+                    const activePoll = data.data[0];
+                    currentPollId = activePoll.id;
+
+                    let formattedData = {
+                        question: activePoll.title,
+                        totalVotes: 0,
+                        options: []
+                    };
+
+                    activePoll.choices.forEach(choice => {
+                        let votes = choice.votes + choice.channel_points_votes; 
+                        formattedData.options.push({
+                            title: choice.title,
+                            votes: votes
+                        });
+                        formattedData.totalVotes += votes;
+                    });
+
+                    // Show the overlay
+                    document.getElementById('poll-card').classList.add('active');
+                    renderPoll(formattedData);
+
+                    // Status update (Live vs Closed)
+                    if (activePoll.status === 'ACTIVE') {
+                        document.getElementById('top-label').innerHTML = `<div class="live-dot"></div> LIVE POLL`;
+                        document.getElementById('poll-timer').style.color = "var(--ape-orange)";
+                        document.getElementById('poll-timer').textContent = "VOTING OPEN";
+                    } else {
+                        document.getElementById('top-label').innerHTML = "POLL RESULTS";
+                        document.getElementById('poll-timer').style.color = "var(--ape-pink)";
+                        document.getElementById('poll-timer').textContent = "CLOSED";
+                        
+                        // Hide it 10 seconds after poll finishes
+                        setTimeout(() => {
+                            document.getElementById('poll-card').classList.remove('active');
+                        }, 10000); 
+                    }
+
+                } else {
+                    // Hide overlay if no poll exists
+                    if (currentPollId !== null) {
+                        document.getElementById('poll-card').classList.remove('active');
+                        currentPollId = null;
+                    }
+                }
+            } catch (error) {
+                console.error("Error fetching Twitch Poll:", error);
+            }
+        }
+
+        // Check for updates every 3 seconds
+        setInterval(fetchLiveTwitchPoll, 3000);
+        
+    </script>
+</body>
+</html>

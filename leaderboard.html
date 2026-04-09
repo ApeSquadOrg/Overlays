@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ape Squad - Tournament Leaderboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Orbitron:wght@400;700;900&family=Roboto:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Ape Squad Palette */
+            --ape-cyan: #01a3eb;
+            --ape-orange: #ff853b;
+            --ape-pink: #f834ac;
+            --ape-purple: #904ce2;
+            --ape-spectrum: linear-gradient(90deg, var(--ape-cyan), var(--ape-orange), var(--ape-pink), var(--ape-purple));
+            
+            --solid-bg: #0f0f0f;
+            --box-bg: rgba(15, 15, 15, 0.85);
+            
+            /* Typography */
+            --font-main: 'Orbitron', sans-serif; 
+            --font-header: 'Bebas Neue', sans-serif;
+            --font-sub: 'Roboto', sans-serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body { 
+            font-family: var(--font-main); 
+            background-color: transparent; /* Use #050507 for local testing */
+            color: #fff; 
+            width: 2560px; height: 1440px; 
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding-top: 20px; 
+        }
+
+        /* --- BACKGROUND FX --- */
+        .bg-pattern {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: radial-gradient(rgba(255, 255, 255, 0.08) 2px, transparent 2px);
+            background-size: 50px 50px; z-index: -4;
+            animation: bgDrift 40s linear infinite;
+        }
+        @keyframes bgDrift { 100% { background-position: -500px 500px; } }
+        .bg-vignette {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at center, transparent 20%, #000 100%);
+            z-index: -3; pointer-events: none;
+        }
+        .scanlines {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.2));
+            background-size: 100% 4px; z-index: -2; pointer-events: none; opacity: 0.8;
+        }
+
+        /* --- HEADER --- */
+        .header-container {
+            text-align: center;
+            margin-bottom: 15px; 
+            filter: drop-shadow(0 5px 10px rgba(0,0,0,0.8));
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .header-logo {
+            height: 75px; 
+            width: auto;
+            object-fit: contain;
+            margin-bottom: -5px;
+            filter: drop-shadow(0 0 15px rgba(255,255,255,0.15));
+        }
+        .header-main {
+            font-family: var(--font-header); font-size: 5.5rem; line-height: 1; letter-spacing: 4px;
+            text-shadow: 0 0 15px rgba(255,255,255,0.2);
+            margin: 0;
+        }
+        .header-main .highlight {
+            background: var(--ape-spectrum); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 10px rgba(144, 76, 226, 0.5));
+        }
+
+        /* --- LEADERBOARD GRID CONTAINER --- */
+        .leaderboard-grid {
+            width: 2480px; 
+            height: fit-content; 
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            gap: 20px;
+            z-index: 10;
+        }
+
+        /* 3 Columns for 48 Teams (16 rows each) */
+        .lb-column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px; /* Tightened from 6px */
+        }
+
+        /* --- LEADERBOARD ROW (TEAM CARD) --- */
+        .lb-row {
+            background: var(--box-bg);
+            border-left: 4px solid var(--ape-cyan);
+            height: 54px; /* Shrunk from 60px to clear the ad space */
+            display: flex;
+            align-items: center;
+            padding-right: 20px;
+            position: relative;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+            transition: all 0.3s ease;
+        }
+
+        /* Rank Box */
+        .lb-rank {
+            width: 54px;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-main);
+            font-size: 1.5rem;
+            font-weight: 900;
+            color: #fff;
+            border-right: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* Special Top 3 Colors */
+        .rank-1 { background: rgba(255, 215, 0, 0.2); color: #FFD700; border-right-color: #FFD700; text-shadow: 0 0 10px #FFD700; }
+        .rank-2 { background: rgba(224, 224, 224, 0.2); color: #E0E0E0; border-right-color: #E0E0E0; text-shadow: 0 0 10px #E0E0E0; }
+        .rank-3 { background: rgba(205, 127, 50, 0.2); color: #CD7F32; border-right-color: #CD7F32; text-shadow: 0 0 10px #CD7F32; }
+
+        /* Team Name Container */
+        .lb-team-wrapper {
+            flex-grow: 1;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            height: 100%;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+        .lb-team {
+            font-family: var(--font-header); 
+            font-size: 2.3rem; /* Scaled down slightly to match row */
+            line-height: 1;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.9);
+            white-space: nowrap;
+        }
+
+        /* Points Box */
+        .lb-points {
+            font-family: var(--font-header);
+            font-size: 2.7rem; /* Scaled down slightly to match row */
+            color: var(--ape-cyan);
+            text-shadow: 0 0 15px rgba(1, 163, 235, 0.5);
+            min-width: 80px;
+            text-align: right;
+            line-height: 1;
+        }
+        .pts-label {
+            font-family: var(--font-sub);
+            font-size: 1rem;
+            color: #888;
+            letter-spacing: 2px;
+            font-weight: 700;
+            margin-left: 5px;
+            vertical-align: middle;
+        }
+
+        /* --- STATUS STATES --- */
+        .status-eliminated { 
+            opacity: 0.35; 
+            filter: grayscale(0.8); 
+            border-left-color: #333;
+        }
+        .status-eliminated .lb-points { color: #888; text-shadow: none; }
+        .status-eliminated .lb-rank { color: #888; }
+
+        #loading-text { font-size: 3rem; color: var(--ape-cyan); animation: pulse 1s infinite; margin-top: 100px; width: 100%; text-align: center; }
+        @keyframes pulse { 50% { opacity: 0.5; } }
+
+        /* ========================================= */
+        /* --- BOTTOM BANNER (SLIM & PROTRUDING) --- */
+        /* ========================================= */
+        .bottom-banner {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 110px; 
+            background: rgba(12, 12, 12, 0.98);
+            border-top: 2px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 80px;
+            z-index: 30;
+            box-shadow: 0 -15px 40px rgba(0,0,0,0.9);
+        }
+        
+        .bottom-banner::before {
+            content: '';
+            position: absolute;
+            top: -3px; left: 0; width: 100%; height: 3px;
+            background: var(--ape-spectrum);
+            box-shadow: 0 0 15px var(--ape-purple);
+        }
+
+        .banner-left { display: flex; align-items: center; gap: 20px; width: 30%; }
+        .banner-logo { height: 80px; width: auto; object-fit: contain; filter: drop-shadow(0 0 10px rgba(255,255,255,0.1)); }
+        .banner-text-group { display: flex; flex-direction: column; justify-content: center; }
+        .banner-sub { font-family: var(--font-sub); font-size: 1.1rem; color: var(--ape-cyan); letter-spacing: 6px; font-weight: 700; margin-bottom: -3px; }
+        .banner-title { font-family: var(--font-header); font-size: 3.8rem; color: #fff; letter-spacing: 2px; line-height: 1; text-shadow: 0 0 15px rgba(255,255,255,0.2); }
+
+        /* PROTRUDING AD CAROUSEL */
+        .banner-center {
+            position: absolute;
+            left: 50%;
+            bottom: 10px; 
+            transform: translateX(-50%);
+            z-index: 40;
+        }
+        .ad-container {
+            width: 384px; 
+            height: 216px; 
+            background: #000;
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            display: flex; align-items: center; justify-content: center;
+            position: relative; overflow: hidden; border-radius: 4px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.95), 0 0 20px rgba(1, 163, 235, 0.15);
+        }
+        
+        .ad-image {
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%;
+            object-fit: cover;
+            opacity: 0; transition: opacity 1s ease-in-out; z-index: 1;
+        }
+        .ad-image.active { opacity: 1; z-index: 2; }
+
+        .banner-right {
+            display: flex; flex-direction: column; align-items: flex-end; 
+            justify-content: center; width: 30%;
+        }
+        .social-sub { font-family: var(--font-header); font-size: 1.8rem; color: #888; letter-spacing: 3px; margin-bottom: -5px; }
+        .social-main { font-family: var(--font-header); font-size: 3.2rem; color: #fff; text-shadow: 0 0 10px var(--ape-purple); line-height: 1; letter-spacing: 1px; transition: opacity 0.5s ease-in-out; }
+
+    </style>
+</head>
+<body>
+
+    <div class="bg-pattern"></div>
+    <div class="bg-vignette"></div>
+    <div class="scanlines"></div>
+
+    <div class="header-container">
+        <img src="images/classics.png" alt="Classics" class="header-logo" onerror="this.style.display='none'">
+        <div class="header-main">TOURNAMENT <span class="highlight">LEADERBOARD</span></div>
+    </div>
+
+    <!-- Leaderboard Grid -->
+    <div class="leaderboard-grid" id="leaderboard-grid">
+        <div id="loading-text">CONNECTING TO DATABASE...</div>
+    </div>
+
+    <!-- BOTTOM BANNER -->
+    <div class="bottom-banner">
+        <div class="banner-left">
+            <img src="images/LOGO.png" alt="Ape Squad Logo" class="banner-logo" onerror="this.style.display='none'">
+            <div class="banner-text-group">
+                <div class="banner-sub">PRESENTED BY</div>
+                <div class="banner-title">APE SQUAD</div>
+            </div>
+        </div>
+        <div class="banner-center">
+            <div class="ad-container" id="ad-carousel">
+                <img src="images/ostout.png" class="ad-image active" onerror="this.style.display='none'">
+                <img src="images/shop.png" class="ad-image" onerror="this.style.display='none'">
+                <img src="images/bundle.png" class="ad-image" onerror="this.style.display='none'">
+            </div>
+        </div>
+        <div class="banner-right">
+            <div class="social-sub">FOLLOW THE ACTION</div>
+            <div class="social-main" id="social-carousel-text">APESQUAD.ORG</div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // CONFIGURATION
+        // ==========================================
+        const CONFIG = {
+            SPREADSHEET_ID: '10ZmWteGljWdAu4TIMMkKkt23jFSuuKlTtqc-bxpVvN4', 
+            SHEET_GID: '1919570457', // Must be the Leaderboard NA sheet GID!
+            AD_ROTATION_SPEED: 15000, // 15 seconds for Ads
+            SOCIAL_ROTATION_SPEED: 8000, // 8 seconds for Socials
+            SOCIAL_HANDLES: ['APESQUAD.ORG', '@APESQUAD', 'YOUTUBE.COM/APESQUAD'] 
+        };
+
+        const query = encodeURIComponent("SELECT M, N, O, P WHERE M IS NOT NULL");
+        const API_URL = `https://docs.google.com/spreadsheets/d/${CONFIG.SPREADSHEET_ID}/gviz/tq?tqx=out:json&gid=${CONFIG.SHEET_GID}&tq=${query}`;
+
+        // AD CAROUSEL LOGIC
+        let currentAdIndex = 0;
+        const ads = document.querySelectorAll('.ad-image');
+        function rotateAds() {
+            if(ads.length <= 1) return; 
+            ads[currentAdIndex].classList.remove('active');
+            currentAdIndex = (currentAdIndex + 1) % ads.length;
+            ads[currentAdIndex].classList.add('active');
+        }
+        setInterval(rotateAds, CONFIG.AD_ROTATION_SPEED);
+
+        // SOCIAL MEDIA CAROUSEL LOGIC
+        let currentSocialIndex = 0;
+        const socialTextEl = document.getElementById('social-carousel-text');
+        
+        if(CONFIG.SOCIAL_HANDLES.length > 0) {
+            socialTextEl.textContent = CONFIG.SOCIAL_HANDLES[0];
+        }
+
+        function rotateSocials() {
+            if(CONFIG.SOCIAL_HANDLES.length <= 1) return; 
+            
+            socialTextEl.style.opacity = 0;
+            
+            setTimeout(() => {
+                currentSocialIndex = (currentSocialIndex + 1) % CONFIG.SOCIAL_HANDLES.length;
+                socialTextEl.textContent = CONFIG.SOCIAL_HANDLES[currentSocialIndex];
+                socialTextEl.style.opacity = 1;
+            }, 500); 
+        }
+        setInterval(rotateSocials, CONFIG.SOCIAL_ROTATION_SPEED);
+
+        // LEADERBOARD LOGIC
+        function getCellValue(row, colIndex) {
+            if (row && row.c && row.c[colIndex]) {
+                return row.c[colIndex].v !== null ? row.c[colIndex].v.toString() : '';
+            }
+            return '';
+        }
+
+        function resizeLongText() {
+            document.querySelectorAll('.lb-team').forEach(el => {
+                const parent = el.parentElement;
+                let fontSize = 2.3; // Matched to new CSS default
+                el.style.fontSize = fontSize + 'rem';
+                while (el.scrollWidth > parent.clientWidth && fontSize > 1.2) {
+                    fontSize -= 0.05;
+                    el.style.fontSize = fontSize + 'rem';
+                }
+            });
+        }
+
+        async function fetchLeaderboard() {
+            try {
+                const response = await fetch(API_URL);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                
+                const text = await response.text();
+                const json = JSON.parse(text.substring(47, text.length - 2));
+                const rows = json.table.rows;
+
+                const teams = [];
+
+                let startIndex = 0;
+                if(getCellValue(rows[0], 0).toLowerCase() === 'rank') {
+                    startIndex = 1;
+                }
+
+                for(let i = startIndex; i < rows.length; i++) {
+                    const row = rows[i];
+                    const rawRank = getCellValue(row, 0);
+                    
+                    if(!rawRank) continue;
+
+                    const rank = parseInt(rawRank);
+                    if(isNaN(rank)) continue;
+
+                    const name = getCellValue(row, 1);
+                    const rawPoints = getCellValue(row, 2);
+                    const status = getCellValue(row, 3).toUpperCase();
+                    
+                    const points = Math.floor(Number(rawPoints) || 0); 
+
+                    teams.push({ rank, name, points, status });
+                }
+
+                teams.sort((a, b) => a.rank - b.rank);
+                renderLeaderboard(teams);
+
+            } catch (error) {
+                console.error("Error fetching leaderboard:", error);
+                document.getElementById('leaderboard-grid').innerHTML = `<div id="loading-text" style="color:var(--ape-pink);">ERROR LOADING DATA</div>`;
+            }
+        }
+
+        function renderLeaderboard(teams) {
+            const container = document.getElementById('leaderboard-grid');
+            container.innerHTML = '';
+
+            const col1 = teams.slice(0, 16);
+            const col2 = teams.slice(16, 32);
+            const col3 = teams.slice(32, 48);
+
+            const allCols = [col1, col2, col3];
+
+            allCols.forEach(colData => {
+                let columnHTML = `<div class="lb-column">`;
+
+                colData.forEach(team => {
+                    
+                    let statusClass = '';
+                    if(team.status === 'ELIMINATED' || team.status === '-') {
+                        statusClass = 'status-eliminated';
+                    }
+
+                    let rankClass = '';
+                    if(team.rank === 1) rankClass = 'rank-1';
+                    else if(team.rank === 2) rankClass = 'rank-2';
+                    else if(team.rank === 3) rankClass = 'rank-3';
+
+                    columnHTML += `
+                        <div class="lb-row ${statusClass}">
+                            <div class="lb-rank ${rankClass}">${team.rank}</div>
+                            <div class="lb-team-wrapper">
+                                <div class="lb-team">${team.name}</div>
+                            </div>
+                            <div class="lb-points">${team.points}<span class="pts-label">PTS</span></div>
+                        </div>
+                    `;
+                });
+
+                columnHTML += `</div>`;
+                container.innerHTML += columnHTML;
+            });
+            
+            setTimeout(resizeLongText, 50);
+        }
+
+        fetchLeaderboard();
+
+    </script>
+</body>
+</html>

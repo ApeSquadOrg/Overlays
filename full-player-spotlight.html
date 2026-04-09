@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ape Squad - Full Screen Spotlight (CSV Bulletproof)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Orbitron:wght@400;700;900&family=Roboto:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --ape-cyan: #01a3eb; --ape-orange: #ff853b; --ape-pink: #f834ac; --ape-purple: #904ce2;
+            --solid-bg: #030303; 
+            --team-gradient: linear-gradient(135deg, var(--ape-cyan), var(--ape-purple));
+            --font-main: 'Orbitron', sans-serif; --font-header: 'Bebas Neue', sans-serif; --font-sub: 'Roboto', sans-serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        /* DARKER THEMED BACKGROUND */
+        body { 
+            font-family: var(--font-main); 
+            background: radial-gradient(circle at center, #0a0a0a 0%, #000000 100%); 
+            color: #fff; 
+            overflow: hidden; 
+            width: 2560px; height: 1440px; 
+            display: flex; flex-direction: column;
+        }
+
+        /* --- BACKGROUND EFFECTS --- */
+        .bg-grid {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: 
+                linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+            background-size: 40px 40px; z-index: 0;
+        }
+        .bg-glow {
+            position: absolute; top: -20%; left: -10%; width: 50%; height: 80%;
+            background: radial-gradient(circle, rgba(1, 163, 235, 0.08) 0%, transparent 60%);
+            z-index: 0; filter: blur(60px);
+        }
+        .bg-glow-right {
+            position: absolute; bottom: -20%; right: -10%; width: 50%; height: 80%;
+            background: radial-gradient(circle, rgba(248, 52, 172, 0.05) 0%, transparent 60%);
+            z-index: 0; filter: blur(60px);
+        }
+
+        /* --- MATCH HEADER --- */
+        .match-header {
+            position: relative; z-index: 10; width: 100%; height: 160px;
+            background: linear-gradient(to bottom, rgba(0,0,0,1), rgba(0,0,0,0));
+            display: flex; align-items: center; justify-content: center; gap: 30px;
+            border-bottom: 2px solid rgba(255,255,255,0.03);
+            padding-top: 20px;
+        }
+        .header-team { display: flex; align-items: center; gap: 15px; }
+        .header-team img { width: 70px; height: 70px; object-fit: contain; }
+        .header-team span { 
+            font-family: var(--font-header); font-size: 4rem; letter-spacing: 2px; 
+            text-transform: uppercase; text-shadow: 2px 2px 15px rgba(0,0,0,1); white-space: nowrap;
+        }
+        .match-vs {
+            font-family: var(--font-main); font-size: 1.8rem; color: var(--ape-pink); font-weight: 900; letter-spacing: 2px;
+            background: rgba(248, 52, 172, 0.1); padding: 5px 15px; border-radius: 8px; border: 1px solid rgba(248, 52, 172, 0.5);
+        }
+
+        /* --- MAIN SHOWCASE LAYOUT --- */
+        .showcase-container {
+            position: relative; z-index: 10; flex: 1; display: flex; align-items: center; justify-content: center; gap: 80px;
+            padding: 0 120px;
+            opacity: 0; transform: translateY(30px);
+            transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .showcase-container.active { opacity: 1; transform: translateY(0); }
+
+        /* LEFT: PLAYER PHOTO / LOGO FALLBACK */
+        .photo-column {
+            position: relative; flex-shrink: 0; width: 700px; aspect-ratio: 4 / 5; 
+            border-radius: 12px; border: 4px solid var(--ape-cyan);
+            background: radial-gradient(circle at center, #111 0%, #030303 100%); 
+            box-shadow: inset 0 0 80px rgba(0,0,0,0.9), 0 20px 60px rgba(0,0,0,0.9), 0 0 30px rgba(1, 163, 235, 0.2);
+            overflow: hidden; display: flex; align-items: center; justify-content: center;
+        }
+        .photo-column img { width: 100%; height: 100%; transition: all 0.5s ease; }
+        .photo-column::after {
+            content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 40%;
+            background: linear-gradient(to top, rgba(0,0,0,1), transparent); pointer-events: none;
+        }
+
+        /* RIGHT: SPOTLIGHT DATA */
+        .info-column { 
+            display: flex; flex-direction: column; flex: 1; max-width: 1100px; 
+            justify-content: center; 
+            height: 100%;
+        }
+        
+        .sp-label {
+            font-family: var(--font-sub); font-size: 1.4rem; color: var(--ape-cyan); 
+            text-transform: uppercase; letter-spacing: 6px; font-weight: 900; margin-bottom: 10px;
+        }
+
+        .sp-name-wrapper { display: flex; align-items: center; gap: 25px; margin-bottom: 10px; }
+        .sp-name {
+            font-family: var(--font-header); font-size: 8rem; letter-spacing: 4px; 
+            text-transform: uppercase; line-height: 0.9; text-shadow: 4px 4px 15px rgba(0,0,0,1);
+        }
+        .sp-rank-box {
+            font-family: var(--font-header); font-size: 3rem; color: #fff;
+            background: linear-gradient(135deg, rgba(248, 52, 172, 0.2), rgba(144, 76, 226, 0.2));
+            padding: 8px 20px; border-radius: 8px; border: 2px solid var(--ape-pink); 
+            box-shadow: 0 0 15px rgba(248, 52, 172, 0.4); text-align: center; line-height: 1; display: none;
+        }
+        .sp-rank-box.active { display: block; }
+
+        .team-row {
+            display: flex; align-items: center; gap: 20px; margin-bottom: 25px;
+            background: rgba(255,255,255,0.03); padding: 10px 25px; border-radius: 8px; border-left: 4px solid var(--ape-orange);
+            width: fit-content;
+        }
+        .team-logo { width: 60px; height: 60px; object-fit: contain; }
+        .sp-team { font-family: var(--font-header); font-size: 3rem; color: var(--ape-orange); text-transform: uppercase; letter-spacing: 2px; }
+
+        .sp-meta-row { display: flex; gap: 15px; margin-bottom: 15px; flex-wrap: wrap; }
+        .meta-badge {
+            font-family: var(--font-sub); font-size: 1.2rem; font-weight: 900; letter-spacing: 2px; 
+            padding: 8px 20px; border-radius: 6px; background: #111; color: #ddd; text-transform: uppercase;
+            display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+        .meta-role { border: 1px solid rgba(255,255,255,0.1); }
+        .meta-earn { background: rgba(248, 52, 172, 0.1); color: var(--ape-pink); border: 1px solid rgba(248, 52, 172, 0.5); }
+        .meta-nation { border: 1px solid rgba(1, 163, 235, 0.5); color: var(--ape-cyan); background: rgba(1, 163, 235, 0.05); }
+        #sp-flag { width: 28px; height: 20px; object-fit: cover; border-radius: 2px; border: 1px solid rgba(255,255,255,0.2); }
+
+        .sp-ign { color: #666; font-size: 1.2rem; letter-spacing: 3px; margin-bottom: 40px; }
+
+        /* HIGHLIGHTS SECTION */
+        .sp-body-container { display: flex; flex-direction: column; gap: 15px; }
+        .sp-body-title {
+            font-family: var(--font-sub); font-size: 1.2rem; color: #888; text-transform: uppercase; letter-spacing: 4px; font-weight: 900; border-bottom: 2px solid #222; padding-bottom: 5px; margin-bottom: 10px;
+        }
+        
+        .highlights-grid { display: flex; flex-direction: column; gap: 15px; }
+        .highlight-item {
+            display: flex; align-items: center; gap: 25px; background: rgba(15,15,15,0.9); padding: 15px 25px; 
+            border-left: 5px solid var(--ape-pink); border-radius: 0 8px 8px 0; box-shadow: 0 8px 20px rgba(0,0,0,0.7);
+        }
+        .hl-placement {
+            font-family: var(--font-header); 
+            font-size: 3.2rem;       
+            color: #fff; 
+            width: 180px;            
+            flex-shrink: 0; 
+            white-space: nowrap; 
+            text-align: right;       
+            line-height: 1; 
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.9);
+        }
+        .hl-details { display: flex; flex-direction: column; justify-content: center; }
+        .hl-tourney { font-family: var(--font-header); font-size: 2.2rem; color: #eee; line-height: 1; letter-spacing: 1px; }
+        .hl-meta { font-family: var(--font-sub); font-size: 1.1rem; color: var(--ape-pink); text-transform: uppercase; font-weight: 700; letter-spacing: 2px; margin-top: 5px; }
+
+    </style>
+</head>
+<body>
+
+    <div class="bg-grid"></div>
+    <div class="bg-glow"></div>
+    <div class="bg-glow-right"></div>
+
+    <!-- DYNAMIC MATCH HEADER -->
+    <div class="match-header" id="match-header">
+        <div class="header-team" id="team-block-1"><img id="h-t1-logo" src="images/LOGO.png"><span id="h-t1-name">LOADING</span></div>
+        <div class="match-vs" id="vs-block-2">VS</div>
+        <div class="header-team" id="team-block-2"><img id="h-t2-logo" src="images/LOGO.png"><span id="h-t2-name">LOADING</span></div>
+        <div class="match-vs" id="vs-block-3" style="display: none;">VS</div>
+        <div class="header-team" id="team-block-3" style="display: none;"><img id="h-t3-logo" src="images/LOGO.png"><span id="h-t3-name">LOADING</span></div>
+        <div class="match-vs" id="vs-block-4" style="display: none;">VS</div>
+        <div class="header-team" id="team-block-4" style="display: none;"><img id="h-t4-logo" src="images/LOGO.png"><span id="h-t4-name">LOADING</span></div>
+    </div>
+
+    <!-- PLAYER SHOWCASE -->
+    <div class="showcase-container" id="showcase-container">
+        
+        <!-- Photo Container -->
+        <div class="photo-column" id="sp-photo-container">
+            <img id="sp-photo" src="">
+        </div>
+
+        <div class="info-column">
+            <div class="sp-label">PLAYER SPOTLIGHT</div>
+            <div class="sp-name-wrapper">
+                <div class="sp-name" id="sp-name">PLAYER NAME</div>
+                <div class="sp-rank-box" id="sp-rank">GLOBAL #1</div>
+            </div>
+            <div class="team-row">
+                <img class="team-logo" id="sp-team-logo" src="">
+                <div class="sp-team" id="sp-team">TEAM NAME</div>
+            </div>
+            <div class="sp-meta-row">
+                <span class="meta-badge meta-role" id="sp-role">ROLE</span>
+                <span class="meta-badge meta-nation" id="sp-nation-container"><img id="sp-flag" src="" style="display: none;"><span id="sp-nation">NATION</span></span>
+                <span class="meta-badge meta-earn" id="sp-earn">$0 EARNED</span>
+            </div>
+            <div class="sp-ign" id="sp-ign">EMBARK ID</div>
+            <div class="sp-body-container" id="sp-body-container">
+                <div class="sp-body-title">CAREER HIGHLIGHTS</div>
+                <div class="highlights-grid" id="highlights-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // =======================================================
+        // CONFIGURATION
+        // =======================================================
+        const SPREADSHEET_ID = '10ZmWteGljWdAu4TIMMkKkt23jFSuuKlTtqc-bxpVvN4';
+        const CONTROL_SHEET_GID = '228881380'; 
+        const ROSTER_SHEET_GID = '1769112582'; 
+
+        const CYCLE_TIME_MS = 12000; 
+        const POLL_RATE_MS = 3000; 
+
+        let currentMatchHash = "";
+        let playerQueue = [];
+        let currentPlayerIndex = 0;
+        let cycleTimer = null;
+        
+        let isManualMode = false;
+        let currentDisplayedPlayer = "";
+
+        const COUNTRY_MAP = {
+            "usa": "us", "united states": "us", "us": "us", "america": "us", "canada": "ca", "ca": "ca",
+            "uk": "gb", "united kingdom": "gb", "gb": "gb", "france": "fr", "germany": "de", "spain": "es", "italy": "it",
+            "brazil": "br", "mexico": "mx", "australia": "au", "japan": "jp", "korea": "kr", "south korea": "kr", 
+            "sweden": "se", "denmark": "dk", "norway": "no", "finland": "fi", "poland": "pl", "netherlands": "nl"
+        };
+
+        const TIER_WEIGHTS = { "S-TIER": 100, "A-TIER": 90, "B-TIER": 80, "C-TIER": 70, "D-TIER": 60, "SHOWMATCH": 50, "QUALIFIER": 40, "MISC": 30 };
+
+        function getTierScore(tierString) {
+            const t = (tierString || "").toUpperCase();
+            for (let key in TIER_WEIGHTS) { if (t.includes(key)) return TIER_WEIGHTS[key]; }
+            return 0; 
+        }
+
+        // --- RAW CSV PARSER (Bypasses Google API Type Bugs Entirely) ---
+        function parseCSV(text) {
+            let rows = []; let row = []; let inQuotes = false; let val = '';
+            for (let i = 0; i < text.length; i++) {
+                let c = text[i]; let next = text[i+1];
+                if (c === '"' && inQuotes && next === '"') { val += '"'; i++; } 
+                else if (c === '"') { inQuotes = !inQuotes; } 
+                else if (c === ',' && !inQuotes) { row.push(val.trim()); val = ''; } 
+                else if ((c === '\n' || c === '\r') && !inQuotes) {
+                    if (c === '\r' && next === '\n') i++; 
+                    row.push(val.trim()); rows.push(row); row = []; val = '';
+                } else { val += c; }
+            }
+            if (val !== '' || row.length > 0) { row.push(val.trim()); rows.push(row); }
+            return rows;
+        }
+
+        function formatTeamNameToPathSegment(name) {
+            if (!name || name === '') return 'default'; 
+            return name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+        }
+
+        // =======================================================
+        // DATA FETCHERS
+        // =======================================================
+        async function fetchHighlights() {
+            try {
+                const response = await fetch(`players.json?nocache=${new Date().getTime()}`);
+                return await response.json();
+            } catch (error) { return []; }
+        }
+
+        async function fetchPlayerRank(embarkId) {
+            if(!embarkId || embarkId === "UNKNOWN") return null;
+            const encodedId = encodeURIComponent(embarkId);
+            try {
+                const response = await fetch(`https://api.the-finals-leaderboard.com/v1/leaderboard/s10/crossplay?name=${encodedId}`);
+                if (response.ok) {
+                    const json = await response.json();
+                    if (json.data && json.data.length > 0) return json.data[0].rank; 
+                }
+                return null;
+            } catch(e) { return null; }
+        }
+
+        async function buildQueue(teamsArray) {
+            let newQueue = [];
+            try {
+                const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${ROSTER_SHEET_GID}&nocache=${new Date().getTime()}`;
+                const res = await fetch(url);
+                const csvData = await res.text();
+                const rows = parseCSV(csvData);
+
+                teamsArray.forEach(teamSearchString => {
+                    if (!teamSearchString || teamSearchString.toLowerCase() === 'blank space') return;
+                    for(let i = 1; i < rows.length; i++) {
+                        if(rows[i].length < 4) continue;
+                        const tName = rows[i][3] || "";
+                        if(tName.toLowerCase() === teamSearchString.toLowerCase()) {
+                            // Col 5 = Cap, Col 7 = P2, Col 9 = P3
+                            if (rows[i][5]) newQueue.push({ name: rows[i][5], id: rows[i][6], team: tName });
+                            if (rows[i][7]) newQueue.push({ name: rows[i][7], id: rows[i][8], team: tName });
+                            if (rows[i][9]) newQueue.push({ name: rows[i][9], id: rows[i][10], team: tName });
+                            break; 
+                        }
+                    }
+                });
+            } catch (e) { console.error(e); }
+            return newQueue;
+        }
+
+        async function fetchSinglePlayerInfo(targetName) {
+            try {
+                const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${ROSTER_SHEET_GID}&nocache=${new Date().getTime()}`;
+                const res = await fetch(url);
+                const csvData = await res.text();
+                const rows = parseCSV(csvData);
+                
+                const searchTarget = targetName.toLowerCase().trim();
+
+                for(let i = 1; i < rows.length; i++) {
+                    if(rows[i].length < 4) continue;
+                    const teamName = (rows[i][3] || "").trim();
+                    const cap = (rows[i][5] || "").trim();
+                    const p2 = (rows[i][7] || "").trim();
+                    const p3 = (rows[i][9] || "").trim();
+                    const sub = (rows[i][11] || "").trim();
+
+                    if(cap.toLowerCase() === searchTarget) return { name: cap, team: teamName, id: rows[i][6] };
+                    if(p2.toLowerCase() === searchTarget) return { name: p2, team: teamName, id: rows[i][8] };
+                    if(p3.toLowerCase() === searchTarget) return { name: p3, team: teamName, id: rows[i][10] };
+                    if(sub.toLowerCase() === searchTarget) return { name: sub, team: teamName, id: rows[i][12] };
+                }
+            } catch(e) { }
+            return { name: targetName, team: "Free Agent", id: "UNKNOWN" };
+        }
+
+        // =======================================================
+        // SEAMLESS IMAGE PRELOADER PROMISE
+        // =======================================================
+        function preloadImage(pInfo) {
+            return new Promise((resolve) => {
+                const playerPhotoPath = `images/players/${encodeURIComponent(pInfo.name.trim())}.jpg`;
+                const teamLogoPath = `images/teams/${formatTeamNameToPathSegment(pInfo.team)}.png`;
+
+                let img = new Image();
+                img.onload = () => resolve({ src: playerPhotoPath, fit: 'cover', pad: '0' });
+                
+                img.onerror = () => {
+                    let fallback = new Image();
+                    fallback.onload = () => resolve({ src: teamLogoPath, fit: 'contain', pad: '100px' });
+                    fallback.onerror = () => resolve({ src: 'images/LOGO.png', fit: 'contain', pad: '120px' });
+                    fallback.src = teamLogoPath;
+                };
+                
+                img.src = playerPhotoPath;
+            });
+        }
+
+        function setHeaderTeamUI(index, name) {
+            const block = document.getElementById(`team-block-${index}`);
+            const vsBlock = document.getElementById(`vs-block-${index}`); 
+            if (!name || name.toLowerCase() === 'blank space' || name === '') {
+                block.style.display = 'none';
+                if (vsBlock) vsBlock.style.display = 'none';
+                return false;
+            }
+            block.style.display = 'flex';
+            if (vsBlock) vsBlock.style.display = 'block';
+            document.getElementById(`h-t${index}-name`).textContent = name;
+            const logoEl = document.getElementById(`h-t${index}-logo`);
+            logoEl.src = `images/teams/${formatTeamNameToPathSegment(name)}.png`;
+            logoEl.onerror = function() { this.src = 'images/LOGO.png'; };
+            return true;
+        }
+
+        // =======================================================
+        // CORE DISPLAY RENDERER
+        // =======================================================
+        async function displayPlayer(pInfo) {
+            const container = document.getElementById('showcase-container');
+            
+            // Fade out and wait for CSS transition to finish completely
+            container.classList.remove('active');
+            await new Promise(r => setTimeout(r, 600));
+
+            // Wait for both the API Data AND the actual Image File to finish downloading
+            const [jsonDB, imgData] = await Promise.all([
+                fetchHighlights(),
+                preloadImage(pInfo)
+            ]);
+            
+            const playerData = jsonDB.find(p => p.player && p.player.toLowerCase() === pInfo.name.toLowerCase());
+            
+            // Build text DOM
+            document.getElementById('sp-name').textContent = pInfo.name;
+            document.getElementById('sp-ign').textContent = `EMBARK ID: ${pInfo.id || 'UNKNOWN'}`;
+            document.getElementById('sp-team').textContent = pInfo.team;
+
+            // Apply the fully downloaded seamless image
+            const photoEl = document.getElementById('sp-photo');
+            photoEl.src = imgData.src;
+            photoEl.style.objectFit = imgData.fit;
+            photoEl.style.padding = imgData.pad;
+
+            // Logo Update
+            const logoEl = document.getElementById('sp-team-logo');
+            logoEl.src = `images/teams/${formatTeamNameToPathSegment(pInfo.team)}.png`;
+            logoEl.onerror = function() { this.src = 'images/LOGO.png'; };
+
+            // Meta
+            const roleEl = document.getElementById('sp-role');
+            const natContainerEl = document.getElementById('sp-nation-container');
+            const natTextEl = document.getElementById('sp-nation');
+            const flagEl = document.getElementById('sp-flag');
+            const earnEl = document.getElementById('sp-earn');
+
+            if (playerData) {
+                roleEl.textContent = playerData.role || "Competitor";
+                if (playerData.nationality) {
+                    natContainerEl.style.display = "inline-flex";
+                    natTextEl.textContent = playerData.nationality;
+                    const isoCode = COUNTRY_MAP[playerData.nationality.toLowerCase().trim()];
+                    if (isoCode) { flagEl.src = `https://flagcdn.com/32x24/${isoCode}.png`; flagEl.style.display = "block"; } 
+                    else { flagEl.style.display = "none"; }
+                } else { natContainerEl.style.display = "none"; }
+                if (playerData.earnings && playerData.earnings !== "null") {
+                    earnEl.style.display = "inline-flex"; earnEl.textContent = `${playerData.earnings} EARNED`;
+                } else { earnEl.style.display = "none"; }
+            } else {
+                roleEl.textContent = "Competitor";
+                natContainerEl.style.display = "none"; earnEl.style.display = "none";
+            }
+
+            // Highlights
+            const hlContainer = document.getElementById('highlights-container');
+            const spBodyContainer = document.getElementById('sp-body-container');
+            hlContainer.innerHTML = ""; 
+            
+            if (playerData && playerData.highlights && playerData.highlights.length > 0) {
+                let sortedHighlights =[...playerData.highlights];
+                sortedHighlights.sort((a, b) => getTierScore(b.tier) - getTierScore(a.tier));
+                
+                sortedHighlights.slice(0, 4).forEach(hl => {
+                    let metaText = hl.tier || "Tournament";
+                    hlContainer.innerHTML += `
+                        <div class="highlight-item">
+                            <div class="hl-placement">${hl.placement}</div>
+                            <div class="hl-details">
+                                <div class="hl-tourney">${hl.tournament}</div>
+                                <div class="hl-meta">${metaText}</div>
+                            </div>
+                        </div>`;
+                });
+                spBodyContainer.style.display = "flex";
+            } else {
+                spBodyContainer.style.display = "none";
+            }
+
+            // Rank
+            const rankBox = document.getElementById('sp-rank');
+            rankBox.classList.remove('active'); 
+            if (pInfo.id && pInfo.id !== "UNKNOWN") {
+                fetchPlayerRank(pInfo.id).then(rankData => {
+                    if (rankData) { rankBox.textContent = `GLOBAL #${rankData}`; rankBox.classList.add('active'); }
+                });
+            }
+
+            // Fade in with perfectly loaded resources
+            container.classList.add('active');
+        }
+
+        function advanceCycle() {
+            if (playerQueue.length === 0) return;
+            currentPlayerIndex++;
+            if (currentPlayerIndex >= playerQueue.length) currentPlayerIndex = 0;
+            displayPlayer(playerQueue[currentPlayerIndex]);
+        }
+
+        // =======================================================
+        // MASTER POLLING LOOP
+        // =======================================================
+        async function pollSystem() {
+            try {
+                // BYPASSING GOOGLE API BUGS - Fetching raw CSV instead
+                const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${CONTROL_SHEET_GID}&range=A1:M5&nocache=${new Date().getTime()}`;
+                const response = await fetch(url);
+                const csvText = await response.text();
+                const rows = parseCSV(csvText);
+
+                if (rows.length < 3) return; // Wait until data is properly loaded
+
+                // Index 1 = Col B, Index 3 = Col D, Index 11 = Col L
+                // Row[1] = Sheet Row 2 | Row[2] = Sheet Row 3
+                
+                // 1. Read Match Teams
+                const t1 = rows[1][1] || "";
+                const t2 = rows[1][3] || "";
+                const t3 = rows[2][1] || "";
+                const t4 = rows[2][3] || "";
+                
+                setHeaderTeamUI(1, t1); setHeaderTeamUI(2, t2); setHeaderTeamUI(3, t3); setHeaderTeamUI(4, t4);
+
+                // 2. Queue Tracking
+                const newHash = `${t1}-${t2}-${t3}-${t4}`;
+                let queueUpdated = false;
+                if (newHash !== currentMatchHash) {
+                    currentMatchHash = newHash;
+                    playerQueue = await buildQueue([t1, t2, t3, t4]);
+                    currentPlayerIndex = 0;
+                    queueUpdated = true;
+                }
+
+                // 3. Manual Override Check (L2 Name, L3 Checkbox)
+                const rawManualOverrideName = (rows[1][11] || "").trim(); // L2
+                const overrideSwitchRaw = (rows[2][11] || "").trim().toLowerCase(); // L3
+                
+                const isOverrideChecked = (overrideSwitchRaw === "true" || overrideSwitchRaw === "1" || overrideSwitchRaw === "yes");
+                const cleanOverride = rawManualOverrideName.toLowerCase();
+
+                if (isOverrideChecked && cleanOverride !== "") {
+                    // --- MANUAL MODE ---
+                    if (!isManualMode || currentDisplayedPlayer !== cleanOverride) {
+                        isManualMode = true;
+                        currentDisplayedPlayer = cleanOverride; 
+                        
+                        if (cycleTimer) clearInterval(cycleTimer); 
+                        
+                        const pInfo = await fetchSinglePlayerInfo(rawManualOverrideName);
+                        displayPlayer(pInfo); 
+                    }
+                } else {
+                    // --- AUTO CYCLE MODE ---
+                    if (isManualMode) {
+                        isManualMode = false;
+                        currentDisplayedPlayer = "";
+                        if (cycleTimer) clearInterval(cycleTimer);
+                        
+                        if (playerQueue.length > 0) {
+                            displayPlayer(playerQueue[currentPlayerIndex]);
+                            cycleTimer = setInterval(advanceCycle, CYCLE_TIME_MS);
+                        } else {
+                            document.getElementById('showcase-container').classList.remove('active');
+                        }
+                    } else if (queueUpdated) {
+                        if (cycleTimer) clearInterval(cycleTimer);
+                        if (playerQueue.length > 0) {
+                            displayPlayer(playerQueue[currentPlayerIndex]);
+                            cycleTimer = setInterval(advanceCycle, CYCLE_TIME_MS);
+                        } else {
+                            document.getElementById('showcase-container').classList.remove('active');
+                        }
+                    } else if (!cycleTimer && playerQueue.length > 0) {
+                        displayPlayer(playerQueue[currentPlayerIndex]);
+                        cycleTimer = setInterval(advanceCycle, CYCLE_TIME_MS);
+                    }
+                }
+
+            } catch (e) { console.error("Poll Error:", e); }
+        }
+
+        // Initialize System
+        pollSystem();
+        setInterval(pollSystem, POLL_RATE_MS); 
+
+    </script>
+</body>
+</html>

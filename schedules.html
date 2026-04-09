@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ape Squad - Command Center Schedule</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Orbitron:wght@400;700;900&family=Roboto:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Ape Squad Palette */
+            --ape-cyan: #01a3eb;
+            --ape-orange: #ff853b;
+            --ape-pink: #f834ac;
+            --ape-purple: #904ce2;
+            --ape-spectrum: linear-gradient(90deg, var(--ape-cyan), var(--ape-orange), var(--ape-pink), var(--ape-purple));
+            
+            --solid-bg: #0f0f0f;
+            --box-bg: rgba(15, 15, 15, 0.95);
+            
+            /* Typography */
+            --font-main: 'Orbitron', sans-serif; 
+            --font-header: 'Bebas Neue', sans-serif;
+            --font-sub: 'Roboto', sans-serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body { 
+            font-family: var(--font-main); 
+            background-color: transparent; /* Use #050507 for local testing */
+            color: #fff; 
+            width: 2560px; height: 1440px; 
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding-top: 20px; 
+        }
+
+        /* --- BACKGROUND FX --- */
+        .bg-pattern {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: radial-gradient(rgba(255, 255, 255, 0.08) 2px, transparent 2px);
+            background-size: 50px 50px; z-index: -4;
+            animation: bgDrift 40s linear infinite;
+        }
+        @keyframes bgDrift { 100% { background-position: -500px 500px; } }
+        .bg-vignette {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at center, transparent 20%, #000 100%);
+            z-index: -3; pointer-events: none;
+        }
+        .scanlines {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.2));
+            background-size: 100% 4px; z-index: -2; pointer-events: none; opacity: 0.8;
+        }
+
+        /* --- HEADER --- */
+        .header-container {
+            text-align: center;
+            margin-bottom: 15px; 
+            filter: drop-shadow(0 5px 10px rgba(0,0,0,0.8));
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .header-logo {
+            height: 75px; 
+            width: auto;
+            object-fit: contain;
+            margin-bottom: -5px;
+            filter: drop-shadow(0 0 15px rgba(255,255,255,0.15));
+        }
+        .header-main {
+            font-family: var(--font-header); font-size: 5.5rem; line-height: 1; letter-spacing: 4px;
+            text-shadow: 0 0 15px rgba(255,255,255,0.2);
+            margin: 0;
+        }
+        .header-main .highlight {
+            background: var(--ape-spectrum); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 10px rgba(144, 76, 226, 0.5));
+        }
+
+        /* --- MASSIVE GRID CONTAINER --- */
+        .schedule-grid {
+            width: 2480px; 
+            height: fit-content; 
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: stretch;
+            gap: 10px;
+            z-index: 10;
+        }
+
+        /* ROUND COLUMN */
+        .round-column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px; 
+            background: rgba(0,0,0,0.4);
+            padding: 8px;
+            border-radius: 6px;
+            border-top: 3px solid #333;
+        }
+        .round-header-wrapper {
+            text-align: center;
+            margin-bottom: 4px;
+        }
+        .round-header {
+            font-family: var(--font-header);
+            font-size: 2.8rem;
+            color: #fff;
+            letter-spacing: 2px;
+            line-height: 1;
+            text-shadow: 0 3px 8px rgba(0,0,0,0.8);
+        }
+        .round-map {
+            font-family: var(--font-sub);
+            font-size: 0.9rem;
+            color: #ccc;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            font-weight: 700;
+            background: rgba(0,0,0,0.6);
+            display: inline-block;
+            padding: 2px 12px;
+            border-radius: 4px;
+            margin-top: 3px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* --- X.5 SEPARATOR --- */
+        .half-round-divider {
+            width: 90%;
+            height: 2px;
+            margin: 10px auto; 
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            position: relative;
+        }
+        .half-round-divider::before {
+            content: '◆'; 
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.4);
+            color: var(--ape-pink);
+            font-size: 14px;
+            padding: 0 10px;
+            text-shadow: 0 0 10px var(--ape-pink);
+        }
+
+        /* --- MATCH CARD --- */
+        .match-card {
+            background: var(--box-bg);
+            border-left: 3px solid #444;
+            padding: 6px 10px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        /* 2x2 Teams Grid */
+        .teams-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2px 10px;
+        }
+        .t {
+            font-family: var(--font-header); 
+            font-size: 1.75rem; 
+            line-height: 1;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            white-space: nowrap;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.9);
+        }
+        .t-name {
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        /* Original Team Colors */
+        .c-t1 { color: var(--ape-cyan); }
+        .c-t2 { color: var(--ape-orange); }
+        .c-t3 { color: var(--ape-pink); }
+        .c-t4 { color: var(--ape-purple); }
+
+        /* --- RESULTS COLORS --- */
+        .pos {
+            font-family: var(--font-sub);
+            font-size: 0.8rem;
+            font-weight: 900;
+            padding: 2px 4px;
+            border-radius: 3px;
+            margin-right: 6px;
+            letter-spacing: 1px;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+        
+        .res-1 { color: #FFD700; }
+        .res-1 .pos { background: rgba(255, 215, 0, 0.2); color: #FFD700; border: 1px solid rgba(255, 215, 0, 0.4); }
+        .res-2 { color: #E0E0E0; }
+        .res-2 .pos { background: rgba(224, 224, 224, 0.2); color: #E0E0E0; border: 1px solid rgba(224, 224, 224, 0.4); }
+        .res-3 { color: #CD7F32; }
+        .res-3 .pos { background: rgba(205, 127, 50, 0.2); color: #CD7F32; border: 1px solid rgba(205, 127, 50, 0.4); }
+        .res-4 { color: #888888; }
+        .res-4 .pos { background: rgba(136, 136, 136, 0.2); color: #888; border: 1px solid rgba(136, 136, 136, 0.4); }
+
+        /* --- STATUS STATES --- */
+        .status-completed { background: rgba(5, 5, 5, 0.75); border-left-color: #222; }
+        
+        .status-streamed {
+            border: 2px solid var(--ape-cyan);
+            background: linear-gradient(135deg, rgba(1, 163, 235, 0.2), rgba(248, 52, 172, 0.1));
+            box-shadow: 0 0 15px rgba(1, 163, 235, 0.2), inset 0 0 10px rgba(1, 163, 235, 0.1);
+            z-index: 5;
+        }
+        
+        .stream-badge {
+            position: absolute;
+            top: -9px; right: 5px;
+            background: var(--ape-pink);
+            color: #fff;
+            font-family: var(--font-header);
+            font-size: 1.05rem;
+            padding: 1px 10px;
+            border-radius: 4px;
+            box-shadow: 0 0 10px var(--ape-pink);
+            letter-spacing: 1px;
+            z-index: 10;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+        }
+
+        #loading-text { font-size: 3rem; color: var(--ape-cyan); animation: pulse 1s infinite; margin-top: 100px; }
+        @keyframes pulse { 50% { opacity: 0.5; } }
+
+        /* ========================================= */
+        /* --- BOTTOM BANNER (SLIM & PROTRUDING) --- */
+        /* ========================================= */
+        .bottom-banner {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 110px; 
+            background: rgba(12, 12, 12, 0.98);
+            border-top: 2px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 80px;
+            z-index: 30;
+            box-shadow: 0 -15px 40px rgba(0,0,0,0.9);
+        }
+        
+        /* Glowing Spectrum Top Border */
+        .bottom-banner::before {
+            content: '';
+            position: absolute;
+            top: -3px; left: 0; width: 100%; height: 3px;
+            background: var(--ape-spectrum);
+            box-shadow: 0 0 15px var(--ape-purple);
+        }
+
+        /* LEFT SIDE - BRANDING */
+        .banner-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            width: 30%; 
+        }
+        .banner-logo {
+            height: 80px; 
+            width: auto;
+            object-fit: contain;
+            filter: drop-shadow(0 0 10px rgba(255,255,255,0.1));
+        }
+        .banner-text-group {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .banner-sub {
+            font-family: var(--font-sub);
+            font-size: 1.1rem;
+            color: var(--ape-cyan);
+            letter-spacing: 6px;
+            font-weight: 700;
+            margin-bottom: -3px;
+        }
+        .banner-title {
+            font-family: var(--font-header);
+            font-size: 3.8rem;
+            color: #fff;
+            letter-spacing: 2px;
+            line-height: 1;
+            text-shadow: 0 0 15px rgba(255,255,255,0.2);
+        }
+
+        /* CENTER - PROTRUDING AD CAROUSEL (SHRUNK TO FIT) */
+        .banner-center {
+            position: absolute;
+            left: 50%;
+            bottom: 10px; /* Tucked slightly closer to bottom edge */
+            transform: translateX(-50%);
+            z-index: 40;
+        }
+        .ad-container {
+            width: 384px; /* Perfect 16:9 Width */
+            height: 216px; /* Perfect 16:9 Height */
+            background: #000;
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            border-radius: 4px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.95), 0 0 20px rgba(1, 163, 235, 0.15);
+        }
+        
+        .ad-image {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            object-fit: cover;
+            opacity: 0; /* Hidden by default */
+            transition: opacity 1s ease-in-out; /* Smooth fade crossfade */
+            z-index: 1;
+        }
+        .ad-image.active {
+            opacity: 1;
+            z-index: 2;
+        }
+
+        /* RIGHT SIDE - SOCIALS/URL */
+        .banner-right {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end; 
+            justify-content: center;
+            width: 30%;
+        }
+        .social-sub {
+            font-family: var(--font-header);
+            font-size: 1.8rem;
+            color: #888;
+            letter-spacing: 3px;
+            margin-bottom: -5px;
+        }
+        .social-main {
+            font-family: var(--font-header);
+            font-size: 3.2rem;
+            color: #fff;
+            text-shadow: 0 0 10px var(--ape-purple);
+            line-height: 1;
+            letter-spacing: 1px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="bg-pattern"></div>
+    <div class="bg-vignette"></div>
+    <div class="scanlines"></div>
+
+    <div class="header-container">
+        <!-- Top Center Logo -->
+        <img src="images/classics.png" alt="Classics" class="header-logo" onerror="this.style.display='none'">
+        <div class="header-main"><span class="highlight" id="display-day">DAY X</span> SCHEDULE</div>
+    </div>
+
+    <!-- Grid Container -->
+    <div class="schedule-grid" id="schedule-grid">
+        <div id="loading-text">CONNECTING TO DATABASE...</div>
+    </div>
+
+    <!-- BOTTOM BANNER -->
+    <div class="bottom-banner">
+        
+        <!-- Left: Ape Squad Branding -->
+        <div class="banner-left">
+            <img src="images/LOGO.png" alt="Ape Squad Logo" class="banner-logo" onerror="this.style.display='none'">
+            <div class="banner-text-group">
+                <div class="banner-sub">PRESENTED BY</div>
+                <div class="banner-title">APE SQUAD</div>
+            </div>
+        </div>
+
+        <!-- Center: Protruding Ad Carousel -->
+        <div class="banner-center">
+            <div class="ad-container" id="ad-carousel">
+                <img src="images/ostout.png" class="ad-image active" onerror="this.style.display='none'">
+                <img src="images/shop.png" class="ad-image" onerror="this.style.display='none'">
+                <img src="images/bundle.png" class="ad-image" onerror="this.style.display='none'">
+            </div>
+        </div>
+
+        <!-- Right: URL / Socials -->
+        <div class="banner-right">
+            <div class="social-sub">FOLLOW THE ACTION</div>
+            <div class="social-main">APESQUAD.ORG</div>
+        </div>
+
+    </div>
+
+    <script>
+        // ==========================================
+        // CONFIGURATION
+        // ==========================================
+        const CONFIG = {
+            SPREADSHEET_ID: '10ZmWteGljWdAu4TIMMkKkt23jFSuuKlTtqc-bxpVvN4', 
+            SHEET_GID: '1721197050', 
+            TARGET_DAY: 'Day 1', 
+            AD_ROTATION_SPEED: 15000 // How long each ad shows in milliseconds (15000 = 15s)
+        };
+        // ==========================================
+
+        const API_URL = `https://docs.google.com/spreadsheets/d/${CONFIG.SPREADSHEET_ID}/gviz/tq?tqx=out:json&gid=${CONFIG.SHEET_GID}`;
+
+        document.getElementById('display-day').textContent = CONFIG.TARGET_DAY.toUpperCase();
+
+        // AD CAROUSEL LOGIC
+        let currentAdIndex = 0;
+        const ads = document.querySelectorAll('.ad-image');
+        
+        function rotateAds() {
+            if(ads.length <= 1) return; // Don't run if there is only 1 or 0 ads
+            
+            // Fade out current ad
+            ads[currentAdIndex].classList.remove('active');
+            
+            // Move to next ad
+            currentAdIndex = (currentAdIndex + 1) % ads.length;
+            
+            // Fade in next ad
+            ads[currentAdIndex].classList.add('active');
+        }
+        setInterval(rotateAds, CONFIG.AD_ROTATION_SPEED);
+
+        // SCHEDULE LOGIC
+        function getCellValue(row, colIndex) {
+            if (row && row.c && row.c[colIndex]) {
+                return row.c[colIndex].v !== null ? row.c[colIndex].v.toString() : '';
+            }
+            return '';
+        }
+
+        function resizeLongText() {
+            // Automatically shrinks font size if team name is too long for its box
+            document.querySelectorAll('.t-name').forEach(el => {
+                const parent = el.parentElement;
+                let fontSize = 1.75; // Default rem size
+                
+                el.style.fontSize = fontSize + 'rem';
+                
+                while (el.scrollWidth > parent.clientWidth && fontSize > 1.0) {
+                    fontSize -= 0.05;
+                    el.style.fontSize = fontSize + 'rem';
+                }
+            });
+        }
+
+        function buildMatchCard(match) {
+            let statusClass = 'status-normal';
+            let badgeHTML = '';
+            let teamsHTML = '';
+
+            // Check if match has results
+            if (match.results[0] !== '') {
+                statusClass = 'status-completed';
+                teamsHTML = `
+                    <div class="t res-1"><span class="pos">1ST</span><span class="t-name">${match.results[0] || '-'}</span></div>
+                    <div class="t res-2"><span class="pos">2ND</span><span class="t-name">${match.results[1] || '-'}</span></div>
+                    <div class="t res-3"><span class="pos">3RD</span><span class="t-name">${match.results[2] || '-'}</span></div>
+                    <div class="t res-4"><span class="pos">4TH</span><span class="t-name">${match.results[3] || '-'}</span></div>
+                `;
+            } else {
+                // Upcoming Match
+                if (match.isStream) {
+                    statusClass = 'status-streamed';
+                    badgeHTML = `<div class="stream-badge">LIVE STREAM</div>`;
+                }
+                teamsHTML = `
+                    <div class="t c-t1"><span class="t-name">${match.teams[0]}</span></div>
+                    <div class="t c-t2"><span class="t-name">${match.teams[1]}</span></div>
+                    <div class="t c-t3"><span class="t-name">${match.teams[2]}</span></div>
+                    <div class="t c-t4"><span class="t-name">${match.teams[3]}</span></div>
+                `;
+            }
+
+            return `
+                <div class="match-card ${statusClass}">
+                    ${badgeHTML}
+                    <div class="teams-grid">
+                        ${teamsHTML}
+                    </div>
+                </div>
+            `;
+        }
+
+        async function fetchSchedule() {
+            try {
+                const response = await fetch(API_URL);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                
+                const text = await response.text();
+                const json = JSON.parse(text.substring(47, text.length - 2));
+                const rows = json.table.rows;
+
+                const roundsData = {};
+
+                rows.forEach(row => {
+                    const date = getCellValue(row, 0).trim();
+                    if (date !== CONFIG.TARGET_DAY) return;
+
+                    const rawRoundString = getCellValue(row, 1).toString();
+                    if (!rawRoundString) return;
+
+                    const baseRoundNum = parseInt(rawRoundString);
+                    const isHalfRound = rawRoundString.includes('.5');
+
+                    const teamA = getCellValue(row, 3);
+                    const teamB = getCellValue(row, 4);
+                    const teamC = getCellValue(row, 5);
+                    const teamD = getCellValue(row, 6);
+                    
+                    // Capture Results (Columns H, I, J, K)
+                    const p1 = getCellValue(row, 7);
+                    const p2 = getCellValue(row, 8);
+                    const p3 = getCellValue(row, 9);
+                    const p4 = getCellValue(row, 10);
+                    
+                    const map = getCellValue(row, 11);
+                    const streamIndicator = getCellValue(row, 12).toLowerCase(); 
+
+                    if (!roundsData[baseRoundNum]) {
+                        roundsData[baseRoundNum] = { main: [], half: [], map: map };
+                    }
+                    if(!roundsData[baseRoundNum].map && map) {
+                        roundsData[baseRoundNum].map = map;
+                    }
+
+                    const matchObj = {
+                        teams: [teamA, teamB, teamC, teamD],
+                        results: [p1, p2, p3, p4],
+                        isStream: streamIndicator.includes('stream')
+                    };
+
+                    if (isHalfRound) {
+                        roundsData[baseRoundNum].half.push(matchObj);
+                    } else {
+                        roundsData[baseRoundNum].main.push(matchObj);
+                    }
+                });
+
+                renderGrid(roundsData);
+
+            } catch (error) {
+                console.error("Error fetching schedule:", error);
+                document.getElementById('schedule-grid').innerHTML = `<div id="loading-text" style="color:var(--ape-pink);">ERROR LOADING DATA</div>`;
+            }
+        }
+
+        function renderGrid(roundsData) {
+            const container = document.getElementById('schedule-grid');
+            container.innerHTML = '';
+
+            const roundKeys = Object.keys(roundsData).sort((a, b) => parseInt(a) - parseInt(b));
+
+            if (roundKeys.length === 0) {
+                container.innerHTML = `<div id="loading-text">NO MATCHES FOUND FOR ${CONFIG.TARGET_DAY.toUpperCase()}</div>`;
+                return;
+            }
+
+            roundKeys.forEach(baseRoundNum => {
+                const rData = roundsData[baseRoundNum];
+                
+                let borderColor = '#333';
+                if(baseRoundNum % 5 === 1) borderColor = 'var(--ape-cyan)';
+                else if(baseRoundNum % 5 === 2) borderColor = 'var(--ape-orange)';
+                else if(baseRoundNum % 5 === 3) borderColor = 'var(--ape-pink)';
+                else if(baseRoundNum % 5 === 4) borderColor = 'var(--ape-purple)';
+                else if(baseRoundNum % 5 === 0) borderColor = '#ff4e94';
+
+                let roundMap = rData.map || 'TBD';
+
+                let columnHTML = `
+                    <div class="round-column" style="border-top-color: ${borderColor};">
+                        <div class="round-header-wrapper">
+                            <div class="round-header" style="color: ${borderColor};">ROUND ${baseRoundNum}</div>
+                            <div class="round-map">${roundMap}</div>
+                        </div>
+                `;
+
+                // Render main matches
+                rData.main.forEach(match => { columnHTML += buildMatchCard(match); });
+
+                // Render .5 Divider and matches
+                if (rData.half.length > 0) {
+                    columnHTML += `<div class="half-round-divider"></div>`;
+                    rData.half.forEach(match => { columnHTML += buildMatchCard(match); });
+                }
+
+                columnHTML += `</div>`;
+                container.innerHTML += columnHTML;
+            });
+            
+            // Run font resizing after the HTML is injected
+            setTimeout(resizeLongText, 50);
+        }
+
+        // Fire once on load (Auto-polling removed per request)
+        fetchSchedule();
+
+    </script>
+</body>
+</html>
